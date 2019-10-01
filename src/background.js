@@ -53,12 +53,12 @@ async function rebuildDatabase () {
 }
 
 function addTabToDb (tab) {
+  console.log("Recording tab", tab.id, "in container", tab.cookieStoreId);
   tabs.set(tab.id, tab.cookieStoreId);
   containers.get(tab.cookieStoreId).add(tab.id);
 }
 
 function handleTabCreated (tab) {
-  console.log("tab created: ", tab);
   let cookieStoreId = tab.cookieStoreId;
   if (containers.has(cookieStoreId)) {
     addTabToDb(tab);
@@ -66,7 +66,7 @@ function handleTabCreated (tab) {
 }
 
 function addContainerToDb (cookieStoreId) {
-  console.log("container created: ", cookieStoreId)
+  console.log("Recording temporary container: ", cookieStoreId)
   // TODO: this check should always be true
   if (!containers.has(cookieStoreId)) {
     containers.set(cookieStoreId, new Set());
@@ -74,39 +74,42 @@ function addContainerToDb (cookieStoreId) {
 }
 
 function handleTabRemoved (tabId, removeInfo) {
-  console.log("tab destroyed: ", tabId)
   if (tabs.has(tabId)) {
     let cookieStoreId = tabs.get(tabId);
+    console.log("Forgetting tab", tabId, "in container", cookieStoreId);
     tabs.delete(tabId);
     cleanupContainer(cookieStoreId, tabId);
   }
 }
 
 async function cleanupContainer (cookieStoreId, tabId) {
-  console.log("cleaning up container: ", cookieStoreId, " from ", containers, tabs);
   // checking only our internal tab database because tabs.query tends to return
   // removed tabs for some reason
 
   // TODO: handle unexpected cases where container not recorded or doesn't
   // record the tab
+  console.log("Checking status of container", cookieStoreId);
   let containerTabs = containers.get(cookieStoreId);
   containerTabs.delete(tabId);
-  console.log("found tabs: ", containerTabs)
+  console.log("Found", containerTabs.size, "remaining tabs:", containerTabs);
   if (containerTabs.size == 0) {
     containers.delete(cookieStoreId);
     await browser.contextualIdentities.remove(cookieStoreId);
+    console.log("Removed & forgot empty container", cookieStoreId);
   }
+  // TODO: An "Error: Invalid tab ID" is always logged after this, with the ID
+  // of // the last tab removed. Is this a problem? Is it avoidable?
 }
 
 async function newtab (event) {
-  console.log("Clicked!");
   let container = await browser.contextualIdentities.create({
       name: "Temp",
       color: "orange",
       icon: "chill"
   });
   addContainerToDb(container.cookieStoreId);
-  let tab = browser.tabs.create({
+  let tab = await browser.tabs.create({
     cookieStoreId: container.cookieStoreId
   });
+  console.log("Created new container", container.cookieStoreId, "and tab", tab.id);
 }
