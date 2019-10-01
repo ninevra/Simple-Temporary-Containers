@@ -25,7 +25,7 @@ function isManagedContainer (container) {
 }
 
 async function rebuildDatabase () {
-  // TODO: log the time this takes
+  performance.mark("start rebuild");
   // TODO: if this takes awhile, the results could be inconsistent, because
   // browseraction could be used or tabs could be opened or closed
   // Wipe previous data // TODO: can there ever be any?
@@ -45,6 +45,11 @@ async function rebuildDatabase () {
       }
     }
   }
+  performance.mark("end rebuild");
+  performance.measure("measure rebuild", "start rebuild", "end rebuild");
+  let entry = performance.getEntriesByName("measure rebuild", "measure")[0];
+  console.log("Rebuilt database in", entry.duration, "ms");
+  console.log("Rebuilt database is", containers, tabs);
 }
 
 function addTabToDb (tab) {
