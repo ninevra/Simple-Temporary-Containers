@@ -1,0 +1,26 @@
+{
+  "manifest_version": 2,
+  "name": "Simple Temporary Containers",
+  "version": "0.1.0",
+  "description": "Create and destroy temporary containers.",
+  "icons": {
+    "48": "icons/blue-circle-48.png"
+  },
+
+  "permissions": [
+    "contextualIdentities",
+    "cookies"
+  ],
+
+  "browser_action": {
+    "default_icon": {
+      "48": "icons/blue-circle-48.png"
+    },
+    "default_area": "tabstrip",
+    "default_title": "New temporary container tab"
+  },
+
+  "background": {
+    "scripts": ["background.js"]
+  }
+}
