@@ -44,6 +44,7 @@ function randomChoice (...options) {
 }
 
 async function createContainer () {
+  performance.mark("start createContainer");
   let color = randomChoice(...colors)
   let container = await browser.contextualIdentities.create({
       name: "Temp",
@@ -55,6 +56,10 @@ async function createContainer () {
     .then(name => browser.contextualIdentities.update(cookieStoreId, {
       name: name
     }));
+  performance.mark("end createContainer");
+  performance.measure("measure createContainer", "start createContainer", "end createContainer");
+  let entry = performance.getEntriesByName("measure createContainer", "measure")[0];
+  console.log("created container", cookieStoreId, "in", entry.duration, "ms");
   return container;
 }
 
