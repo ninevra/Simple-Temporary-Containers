@@ -43,7 +43,7 @@ async function rebuildDatabase () {
   tabs.clear();
   // check all extant containers
   let allContainers = await browser.contextualIdentities.query({});
-  for (container of allContainers) {
+  for (let container of allContainers) {
     if (isManagedContainer(container)) {
       let cookieStoreId = container.cookieStoreId;
       addContainerToDb(cookieStoreId);
@@ -54,7 +54,7 @@ async function rebuildDatabase () {
       if (containerTabs.length == 0) {
         forgetAndRemoveContainer(cookieStoreId);
       }
-      for (tab of containerTabs) {
+      for (let tab of containerTabs) {
         addTabToDb(tab);
       }
     }
