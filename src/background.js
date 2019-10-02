@@ -19,6 +19,16 @@ function handleInstalled (details) {
   rebuildDatabase();
 }
 
+async function createContainer () {
+  let container = await browser.contextualIdentities.create({
+      name: "Temp",
+      color: "orange",
+      icon: "chill"
+  });
+  let cookieStoreId = container.cookieStoreId;
+  return container;
+}
+
 function isManagedContainer (container) {
   // TODO: can this match be improved?
   return container.color == "orange" && container.name == "Temp" && container.icon == "chill";
@@ -73,40 +83,41 @@ function addContainerToDb (cookieStoreId) {
   }
 }
 
-function handleTabRemoved (tabId, removeInfo) {
+function forgetTab (tabId, cookieStoreId) {
+  console.log("Forgetting tab", tabId, "in container", cookieStoreId);
+  tabs.delete(tabId);
+  containers.get(cookieStoreId).delete(tabId);
+}
+
+function isEmptyContainer(cookieStoreId) {
+  console.log("Checking status of container", cookieStoreId);
+  let containerTabs = containers.get(cookieStoreId);
+  console.log("Found", containerTabs.size, "remaining tabs:", containerTabs);
+  return containerTabs.size == 0;
+}
+
+async function handleTabRemoved (tabId, removeInfo) {
+  // TODO: handle unexpected cases where container not recorded or doesn't
+  // record the tab
   if (tabs.has(tabId)) {
     let cookieStoreId = tabs.get(tabId);
-    console.log("Forgetting tab", tabId, "in container", cookieStoreId);
-    tabs.delete(tabId);
-    cleanupContainer(cookieStoreId, tabId);
+    forgetTab(tabId, cookieStoreId);
+    if (isEmptyContainer(cookieStoreId)) {
+      await forgetAndRemoveContainer(cookieStoreId);
+    }
   }
 }
 
-async function cleanupContainer (cookieStoreId, tabId) {
-  // checking only our internal tab database because tabs.query tends to return
-  // removed tabs for some reason
-
-  // TODO: handle unexpected cases where container not recorded or doesn't
-  // record the tab
-  console.log("Checking status of container", cookieStoreId);
-  let containerTabs = containers.get(cookieStoreId);
-  containerTabs.delete(tabId);
-  console.log("Found", containerTabs.size, "remaining tabs:", containerTabs);
-  if (containerTabs.size == 0) {
-    containers.delete(cookieStoreId);
-    await browser.contextualIdentities.remove(cookieStoreId);
-    console.log("Removed & forgot empty container", cookieStoreId);
-  }
+async function forgetAndRemoveContainer (cookieStoreId) {
+  containers.delete(cookieStoreId);
+  await browser.contextualIdentities.remove(cookieStoreId);
+  console.log("Removed & forgot container", cookieStoreId);
   // TODO: An "Error: Invalid tab ID" is always logged after this, with the ID
   // of // the last tab removed. Is this a problem? Is it avoidable?
 }
 
 async function newtab (event) {
-  let container = await browser.contextualIdentities.create({
-      name: "Temp",
-      color: "orange",
-      icon: "chill"
-  });
+  let container = await createContainer();
   addContainerToDb(container.cookieStoreId);
   let tab = await browser.tabs.create({
     cookieStoreId: container.cookieStoreId
