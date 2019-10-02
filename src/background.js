@@ -10,6 +10,9 @@ let containers = new Map();
 // A Map from tabIds to cookieStoreIds of all tabs managed by this extension
 let tabs = new Map();
 
+// A utf-8 TextEncoder
+let utf8Encoder = new TextEncoder();
+
 function handleStartup () {
   rebuildDatabase();
 }
@@ -19,6 +22,19 @@ function handleInstalled (details) {
   rebuildDatabase();
 }
 
+async function truncatedHash(string) {
+  // TODO: Does endianness matter here? Can or should DataView be used instead
+  // of Uint8Array?
+
+  // TODO: possibly observed a 3-byte output.  Is this replicable?
+  let buffer = utf8Encoder.encode(string);
+  let hashBuffer = await crypto.subtle.digest('SHA-1', buffer);
+
+  let bytes = new Uint8Array(hashBuffer).slice(0, 4);
+  let hexBytes = new Array(...bytes).map(i => i.toString(16).padStart(2, '0'));
+  return hexBytes.join('');
+}
+
 async function createContainer () {
   let container = await browser.contextualIdentities.create({
       name: "Temp",
@@ -26,12 +42,16 @@ async function createContainer () {
       icon: "chill"
   });
   let cookieStoreId = container.cookieStoreId;
+  let hash = await truncatedHash(cookieStoreId);
+  await browser.contextualIdentities.update(cookieStoreId, {
+    name: "Temp " + hash
+  });
   return container;
 }
 
 function isManagedContainer (container) {
   // TODO: can this match be improved?
-  return container.color == "orange" && container.name == "Temp" && container.icon == "chill";
+  return container.color == "orange" && container.icon == "chill";
 }
 
 async function rebuildDatabase () {
