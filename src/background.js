@@ -42,10 +42,10 @@ async function createContainer () {
       icon: "chill"
   });
   let cookieStoreId = container.cookieStoreId;
-  let hash = await truncatedHash(cookieStoreId);
-  await browser.contextualIdentities.update(cookieStoreId, {
-    name: "Temp " + hash
-  });
+  truncatedHash(cookieStoreId)
+    .then(hash => browser.contextualIdentities.update(cookieStoreId, {
+      name: "Temp " + hash
+    }));
   return container;
 }
 
