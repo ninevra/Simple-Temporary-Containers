@@ -50,6 +50,10 @@ async function rebuildDatabase () {
       // record every tab in each managed container
       // TODO: will tabs.query weirdness matter here?
       let containerTabs = await browser.tabs.query({cookieStoreId: cookieStoreId});
+      // TODO: can this happen in cases other than extension failure?
+      if (containerTabs.length == 0) {
+        forgetAndRemoveContainer(cookieStoreId);
+      }
       for (tab of containerTabs) {
         addTabToDb(tab);
       }
