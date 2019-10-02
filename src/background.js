@@ -35,23 +35,36 @@ async function truncatedHash(string) {
   return hexBytes.join('');
 }
 
+let colors = [
+    "blue", "turquoise", "green", "yellow", "orange", "red", "pink", "purple"
+];
+
+function randomChoice (...options) {
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 async function createContainer () {
+  let color = randomChoice(...colors)
   let container = await browser.contextualIdentities.create({
       name: "Temp",
-      color: "orange",
+      color: color,
       icon: "chill"
   });
   let cookieStoreId = container.cookieStoreId;
-  truncatedHash(cookieStoreId)
-    .then(hash => browser.contextualIdentities.update(cookieStoreId, {
-      name: "Temp " + hash
+  genName(container)
+    .then(name => browser.contextualIdentities.update(cookieStoreId, {
+      name: name
     }));
   return container;
 }
 
-function isManagedContainer (container) {
-  // TODO: can this match be improved?
-  return container.color == "orange" && container.icon == "chill";
+async function genName (container) {
+  return "Temp " + await truncatedHash(container.cookieStoreId + container.color);
+}
+
+async function isManagedContainer (container) {
+  return (container.name.startsWith("Temp") && container.icon == "chill"
+    && container.name == await genName(container));
 }
 
 async function rebuildDatabase () {
@@ -64,7 +77,7 @@ async function rebuildDatabase () {
   // check all extant containers
   let allContainers = await browser.contextualIdentities.query({});
   for (let container of allContainers) {
-    if (isManagedContainer(container)) {
+    if (await isManagedContainer(container)) {
       let cookieStoreId = container.cookieStoreId;
       addContainerToDb(cookieStoreId);
       // record every tab in each managed container
