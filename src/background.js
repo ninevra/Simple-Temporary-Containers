@@ -2,12 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// Register event handlers
+// Setup & Register Event Handlers:
+
 browser.tabs.onRemoved.addListener(handleTabRemoved);
 browser.tabs.onCreated.addListener(handleTabCreated);
 browser.browserAction.onClicked.addListener(handleBrowserAction);
 browser.runtime.onStartup.addListener(handleStartup);
 browser.runtime.onInstalled.addListener(handleInstalled);
+
+browser.menus.create({
+  contexts: ["link"],
+  id: "new-temp-container-tab",
+  title: "Open in New Temp &Container Tab"
+}, () => {});
+
+browser.menus.onClicked.addListener(handleMenuItem);
 
 // Globals:
 
@@ -68,6 +77,21 @@ async function handleBrowserAction (activeTab) {
   let tab = await browser.tabs.create({
     cookieStoreId: container.cookieStoreId
   });
+}
+
+// Handles the menu item being clicked
+// Open a new container and a new tab with the given link
+async function handleMenuItem (info, tab) {
+  // TODO: Handle srcUrls as well? would require registering the 'image' context
+  // TODO: Can tab parameter ever be missing in the registered contexts??
+  if (info.menuItemId == "new-temp-container-tab") {
+    let container = await createContainer();
+    let newTab = await browser.tabs.create({
+      cookieStoreId: container.cookieStoreId,
+      url: info.linkUrl,
+      index: tab ? tab.index + 1 : undefined;
+    });
+  }
 }
 
 // Core / Consistency:

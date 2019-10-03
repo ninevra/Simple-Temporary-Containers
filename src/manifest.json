@@ -10,7 +10,8 @@
 
   "permissions": [
     "contextualIdentities",
-    "cookies"
+    "cookies",
+    "menus"
   ],
 
   "browser_action": {
