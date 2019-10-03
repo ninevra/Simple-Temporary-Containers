@@ -13,7 +13,7 @@ browser.runtime.onInstalled.addListener(handleInstalled);
 browser.menus.create({
   contexts: ["link"],
   id: "new-temp-container-tab",
-  title: "Open in New Temp &Container Tab"
+  title: "Open Link in New Temp &Container Tab"
 }, () => {});
 
 browser.menus.onClicked.addListener(handleMenuItem);

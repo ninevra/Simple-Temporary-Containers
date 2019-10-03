@@ -25,7 +25,7 @@
 
   "browser_action": {
     "default_icon": "icons/feather/plus-square.svg",
-    "default_title": "New temporary container tab"
+    "default_title": "Open a new temporary container tab"
   },
 
   "background": {
