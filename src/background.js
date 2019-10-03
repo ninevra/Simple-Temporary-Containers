@@ -89,7 +89,7 @@ async function handleMenuItem (info, tab) {
     let newTab = await browser.tabs.create({
       cookieStoreId: container.cookieStoreId,
       url: info.linkUrl,
-      index: tab ? tab.index + 1 : undefined;
+      index: tab ? tab.index + 1 : undefined
     });
   }
 }
