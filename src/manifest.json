@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Create and destroy temporary containers.",
   "icons": {
-    "48": "icons/blue-circle-48.png"
+    "48": "icons/feather/plus-square.svg"
   },
 
   "permissions": [
@@ -14,9 +14,8 @@
 
   "browser_action": {
     "default_icon": {
-      "48": "icons/blue-circle-48.png"
+      "48": "icons/feather/plus-square.svg"
     },
-    "default_area": "tabstrip",
     "default_title": "New temporary container tab"
   },
 
