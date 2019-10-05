@@ -104,7 +104,7 @@ async function createContainer () {
   let container = await browser.contextualIdentities.create({
       name: "Temp",
       color: color,
-      icon: "chill"
+      icon: "circle"
   });
   let cookieStoreId = container.cookieStoreId;
   genName(container)
@@ -208,7 +208,7 @@ async function genName (container) {
 // produced by createContainer.  Any such container is considered managed by
 // this extension, and will be deleted when empty.
 async function isManagedContainer (container) {
-  return (container.name.startsWith("Temp") && container.icon == "chill"
+  return (container.name.startsWith("Temp") && container.icon == "circle"
     && container.name == await genName(container));
 }
 
