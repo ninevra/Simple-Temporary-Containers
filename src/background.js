@@ -129,15 +129,17 @@ async function rebuildDatabase () {
   containers.clear();
   tabs.clear();
   // check all extant containers
-  let allContainers = await browser.contextualIdentities.query({});
   // TODO: will tabs.query weirdness matter here?
-  let allTabs = await browser.tabs.query({});
-  for (let container of allContainers) {
+  let [allContainers, allTabs] = await Promise.all([
+    browser.contextualIdentities.query({}),
+    browser.tabs.query({})
+  ]);
+  await Promise.all(allContainers.map(async (container) => {
     if (await isManagedContainer(container)) {
       let cookieStoreId = container.cookieStoreId;
       addContainerToDb(cookieStoreId);
     }
-  }
+  }));
   for (let tab of allTabs) {
     if (containers.has(tab.cookieStoreId)) {
       addTabToDb(tab);
