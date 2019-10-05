@@ -130,20 +130,17 @@ async function rebuildDatabase () {
   tabs.clear();
   // check all extant containers
   let allContainers = await browser.contextualIdentities.query({});
+  // TODO: will tabs.query weirdness matter here?
+  let allTabs = await browser.tabs.query({});
   for (let container of allContainers) {
     if (await isManagedContainer(container)) {
       let cookieStoreId = container.cookieStoreId;
       addContainerToDb(cookieStoreId);
-      // record every tab in each managed container
-      // TODO: will tabs.query weirdness matter here?
-      let containerTabs = await browser.tabs.query({cookieStoreId: cookieStoreId});
-      // TODO: can this happen in cases other than extension failure?
-      if (containerTabs.length == 0) {
-        forgetAndRemoveContainer(cookieStoreId);
-      }
-      for (let tab of containerTabs) {
-        addTabToDb(tab);
-      }
+    }
+  }
+  for (let tab of allTabs) {
+    if (containers.has(tab.cookieStoreId)) {
+      addTabToDb(tab);
     }
   }
   performance.mark("end rebuild");
