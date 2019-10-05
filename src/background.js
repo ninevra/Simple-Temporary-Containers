@@ -99,7 +99,7 @@ async function handleMenuItem (info, tab) {
 
 // Creates, records, and returns a new temporary container
 async function createContainer () {
-  performance.mark("start createContainer");
+  console.time("createContainer");
   let color = randomChoice(...colors)
   let container = await browser.contextualIdentities.create({
       name: "Temp",
@@ -112,17 +112,15 @@ async function createContainer () {
       name: name
     }));
   addContainerToDb(container.cookieStoreId);
-  performance.mark("end createContainer");
-  performance.measure("measure createContainer", "start createContainer", "end createContainer");
-  let entry = performance.getEntriesByName("measure createContainer", "measure")[0];
-  console.log("created container", cookieStoreId, "in", entry.duration, "ms");
+  console.timeEnd("createContainer")
+  console.log("created container", cookieStoreId);
   return container;
 }
 
 // Iterates through all containers and tabs to rebuild extension state
 // TODO: inefficient if tabs.query is O(n) in total number of tabs
 async function rebuildDatabase () {
-  performance.mark("start rebuild");
+  console.time("rebuildDatabase");
   // TODO: if this takes awhile, the results could be inconsistent, because
   // browseraction could be used or tabs could be opened or closed
   // Wipe previous data // TODO: can there ever be any?
@@ -145,10 +143,7 @@ async function rebuildDatabase () {
       addTabToDb(tab);
     }
   }
-  performance.mark("end rebuild");
-  performance.measure("measure rebuild", "start rebuild", "end rebuild");
-  let entry = performance.getEntriesByName("measure rebuild", "measure")[0];
-  console.log("Rebuilt database in", entry.duration, "ms");
+  console.timeEnd("rebuildDatabase");
   console.log("Rebuilt database is", containers, tabs);
 }
 
