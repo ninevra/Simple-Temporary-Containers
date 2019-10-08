@@ -14,7 +14,12 @@ browser.menus.create({
   contexts: ["link"],
   id: "new-temp-container-tab",
   title: "Open Link in New Temp &Container Tab"
-}, () => {});
+}, () => {
+  if (browser.runtime.lastError) {
+    console.error("Error encountered while creating context menu item",
+      browser.runtime.lastError);
+  }
+});
 
 browser.menus.onClicked.addListener(handleMenuItem);
 
