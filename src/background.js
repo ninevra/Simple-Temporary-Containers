@@ -147,6 +147,11 @@ async function rebuildDatabase () {
       addTabToDb(tab);
     }
   }
+  await Promise.all([...containers.keys()].map(async (cookieStoreId) => {
+    if (isEmptyContainer(cookieStoreId)) {
+      await forgetAndRemoveContainer(cookieStoreId);
+    }
+  }));
   console.timeEnd("rebuildDatabase");
   if (debug) console.log("Rebuilt database is", containers, tabs);
 }
