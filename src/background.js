@@ -36,6 +36,8 @@ const utf8Encoder = new TextEncoder();
 const colors = [
     "blue", "turquoise", "green", "yellow", "orange", "red", "pink", "purple"
 ];
+// Set true to enable more logging
+const debug = true;
 
 // Event handlers:
 
@@ -104,7 +106,7 @@ async function handleMenuItem (info, tab) {
 
 // Creates, records, and returns a new temporary container
 async function createContainer () {
-  console.time("createContainer");
+  if (debug) console.time("createContainer");
   let color = randomChoice(...colors)
   let container = await browser.contextualIdentities.create({
       name: "Temp",
@@ -117,8 +119,8 @@ async function createContainer () {
       name: name
     }));
   addContainerToDb(container.cookieStoreId);
-  console.timeEnd("createContainer")
-  console.log("created container", cookieStoreId);
+  if (debug) console.timeEnd("createContainer")
+  if (debug) console.log("created container", cookieStoreId);
   return container;
 }
 
@@ -149,7 +151,7 @@ async function rebuildDatabase () {
     }
   }
   console.timeEnd("rebuildDatabase");
-  console.log("Rebuilt database is", containers, tabs);
+  if (debug) console.log("Rebuilt database is", containers, tabs);
 }
 
 // State Operations:
@@ -157,14 +159,15 @@ async function rebuildDatabase () {
 // Records a tab in the extension state
 // TODO: handle case where tab is not in a known container
 function addTabToDb (tab) {
-  console.log("Recording tab", tab.id, "in container", tab.cookieStoreId);
+  if (debug) console.log("Recording tab", tab.id, "in container",
+    tab.cookieStoreId);
   tabs.set(tab.id, tab.cookieStoreId);
   containers.get(tab.cookieStoreId).add(tab.id);
 }
 
 // Records a container in the extension state
 function addContainerToDb (cookieStoreId) {
-  console.log("Recording temporary container: ", cookieStoreId)
+  if (debug) console.log("Recording temporary container: ", cookieStoreId)
   // TODO: this check should always be true
   if (!containers.has(cookieStoreId)) {
     containers.set(cookieStoreId, new Set());
@@ -174,16 +177,15 @@ function addContainerToDb (cookieStoreId) {
 // Forgets a tab from the extension state
 // TODO: handle case where tab is not in a known container
 function forgetTab (tabId, cookieStoreId) {
-  console.log("Forgetting tab", tabId, "in container", cookieStoreId);
+  if (debug) console.log("Forgetting tab", tabId, "in container",
+    cookieStoreId);
   tabs.delete(tabId);
   containers.get(cookieStoreId).delete(tabId);
 }
 
 // Checks whether a container is believed to be empty
 function isEmptyContainer(cookieStoreId) {
-  console.log("Checking status of container", cookieStoreId);
   let containerTabs = containers.get(cookieStoreId);
-  console.log("Found", containerTabs.size, "remaining tabs:", containerTabs);
   return containerTabs.size == 0;
 }
 
@@ -191,7 +193,7 @@ function isEmptyContainer(cookieStoreId) {
 async function forgetAndRemoveContainer (cookieStoreId) {
   containers.delete(cookieStoreId);
   await browser.contextualIdentities.remove(cookieStoreId);
-  console.log("Removed & forgot container", cookieStoreId);
+  if (debug) console.log("Removed & forgot container", cookieStoreId);
   // TODO: An "Error: Invalid tab ID" is always logged after this, with the ID
   // of // the last tab removed. Is this a problem? Is it avoidable?
 }
