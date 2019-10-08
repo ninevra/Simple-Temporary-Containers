@@ -220,7 +220,7 @@ async function truncatedHash(string, length) {
   let buffer = utf8Encoder.encode(string);
   let hashBuffer = await crypto.subtle.digest('SHA-1', buffer);
   let bytes = new Uint8Array(hashBuffer).slice(0, length);
-  let hexBytes = new Array(...bytes).map(i => i.toString(16).padStart(2, '0'));
+  let hexBytes = [...bytes].map(i => i.toString(16).padStart(2, '0'));
   return hexBytes.join('');
 }
 
