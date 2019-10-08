@@ -101,8 +101,7 @@ async function handleMenuItem (info, tab) {
   }
 }
 
-// Core / Consistency:
-// TODO: this is approximately th opposite of a consistency model
+// State Operations:
 
 // Creates, records, and returns a new temporary container
 async function createContainer () {
@@ -125,7 +124,6 @@ async function createContainer () {
 }
 
 // Iterates through all containers and tabs to rebuild extension state
-// TODO: inefficient if tabs.query is O(n) in total number of tabs
 async function rebuildDatabase () {
   console.time("rebuildDatabase");
   // TODO: if this takes awhile, the results could be inconsistent, because
@@ -134,7 +132,6 @@ async function rebuildDatabase () {
   containers.clear();
   tabs.clear();
   // check all extant containers
-  // TODO: will tabs.query weirdness matter here?
   let [allContainers, allTabs] = await Promise.all([
     browser.contextualIdentities.query({}),
     browser.tabs.query({})
@@ -153,8 +150,6 @@ async function rebuildDatabase () {
   console.timeEnd("rebuildDatabase");
   if (debug) console.log("Rebuilt database is", containers, tabs);
 }
-
-// State Operations:
 
 // Records a tab in the extension state
 // TODO: handle case where tab is not in a known container
@@ -195,7 +190,7 @@ async function forgetAndRemoveContainer (cookieStoreId) {
   await browser.contextualIdentities.remove(cookieStoreId);
   if (debug) console.log("Removed & forgot container", cookieStoreId);
   // TODO: An "Error: Invalid tab ID" is always logged after this, with the ID
-  // of // the last tab removed. Is this a problem? Is it avoidable?
+  // of the last tab removed. Is this a problem? Is it avoidable?
 }
 
 // Container Utilities:
@@ -203,7 +198,8 @@ async function forgetAndRemoveContainer (cookieStoreId) {
 // Generates a name for the given container
 // Name incorporates a hash of the container's cookieStoreId and color
 async function genName (container) {
-  return "Temp " + await truncatedHash(container.cookieStoreId + container.color, 4);
+  return "Temp " + await truncatedHash(container.cookieStoreId
+    + container.color, 4);
 }
 
 // Checks whether a container's name and icon are consistent with containers
