@@ -14,6 +14,12 @@
     "menus"
   ],
 
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{b1cb64be-5668-4dc4-8aab-e8c78650a3c7}"
+    }
+  },
+
   "commands": {
     "_execute_browser_action": {
       "suggested_key": {
