@@ -204,8 +204,10 @@ async function forgetAndRemoveContainer (cookieStoreId) {
 // Generates a name for the given container
 // Name incorporates a hash of the container's cookieStoreId and color
 async function genName (container) {
-  return "Temp " + await truncatedHash(container.cookieStoreId
-    + container.color, 4);
+  // TODO: do we benefit by including color here? removing color and icon from
+  // checks would allow user to change them w/o "unmanaging" the container;
+  // cookieStoreId is already unique and persistent
+  return "Temp " + await truncatedHash(container.cookieStoreId, 4);
 }
 
 // Checks whether a container's name and icon are consistent with containers
