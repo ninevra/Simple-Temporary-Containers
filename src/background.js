@@ -7,6 +7,7 @@
 browser.tabs.onRemoved.addListener(handleTabRemoved);
 browser.tabs.onCreated.addListener(handleTabCreated);
 browser.browserAction.onClicked.addListener(handleBrowserAction);
+browser.contextualIdentities.onUpdated.addListener(handleIdentityUpdated);
 browser.runtime.onStartup.addListener(handleStartup);
 browser.runtime.onInstalled.addListener(handleInstalled);
 
@@ -102,6 +103,16 @@ async function handleMenuItem (info, tab) {
   }
 }
 
+// If a managed container's name has been changed by the user, unmanage it
+async function handleIdentityUpdated ({ contextualIdentity: container }) {
+  if (debug) console.log("Continer updated", container);
+  if (containers.has(container.cookieStoreId)) {
+    if (!await isManagedContainer(container)) {
+      forgetContainer(container.cookieStoreId);
+    }
+  }
+}
+
 // State Operations:
 
 // Creates, records, and returns a new temporary container
@@ -114,10 +125,8 @@ async function createContainer () {
       icon: "circle"
   });
   let cookieStoreId = container.cookieStoreId;
-  genName(container)
-    .then(name => browser.contextualIdentities.update(cookieStoreId, {
-      name: name
-    }));
+  let name = await genName(container);
+  await browser.contextualIdentities.update(cookieStoreId, {name: name});
   addContainerToDb(container.cookieStoreId);
   if (debug) console.timeEnd("createContainer")
   if (debug) console.log("created container", cookieStoreId);
@@ -190,11 +199,20 @@ function isEmptyContainer(cookieStoreId) {
   return containerTabs.size == 0;
 }
 
+function forgetContainer (cookieStoreId) {
+  console.log("Forgetting container", cookieStoreId);
+  containers.delete(cookieStoreId);
+}
+
+async function removeContainer (cookieStoreId) {
+  console.log("Removing container", cookieStoreId);
+  await browser.contextualIdentities.remove(cookieStoreId);
+}
+
 // Forgets a container from the extension state and destroys it
 async function forgetAndRemoveContainer (cookieStoreId) {
-  containers.delete(cookieStoreId);
-  await browser.contextualIdentities.remove(cookieStoreId);
-  if (debug) console.log("Removed & forgot container", cookieStoreId);
+  forgetContainer(cookieStoreId);
+  await removeContainer(cookieStoreId);
   // TODO: An "Error: Invalid tab ID" is always logged after this, with the ID
   // of the last tab removed. Is this a problem? Is it avoidable?
 }
