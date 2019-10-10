@@ -27,3 +27,26 @@ describe('truncatedHash()', function () {
     }
   });
 });
+
+describe('genName()', function () {
+
+  let genName;
+
+  before(async function () {
+    genName = (await browser.runtime.getBackgroundPage()).genName;
+  });
+
+  it('should produce different names for containers with different cookieStoreIds', async function () {
+    let name1 = await genName({cookieStoreId: "OneTwo", color: "Three"});
+    let name2 = await genName({cookieStoreId: "One", color: "TwoThree"});
+    expect(name1).to.not.equal(name2);
+  });
+
+  it('should produce the same name for container with same cookieStoreId', async function () {
+    let name1 = await genName({cookieStoreId: "csid", color: "blue", name: "hi"});
+    let name2 = await genName({cookieStoreId: "csid", color: "turquoise", name: "hi"});
+    let name3 = await genName({cookieStoreId: "csid", color: "blue", name: "world"});
+    expect(name2).to.equal(name1);
+    expect(name3).to.equal(name1);
+  });
+});
