@@ -113,21 +113,30 @@ describe('integration tests', function () {
     return promise.then(value => {throw value;}, error => error);
   }
 
-  describe('empty temporary containers', function () {
-    it('should be removed', async function () {
-      let container = (await containersCreated(background.handleBrowserAction))[0];
-      let tab = (await browser.tabs.query({cookieStoreId: container.cookieStoreId}))[0];
-      await browser.tabs.remove(tab.id);
-      // TODO: is the onRemoved() handler guaranteed, or even expected, to be
-      // called by now?
-      // TODO: This is a hack, should eventually bundle chai-as-promised and use
-      // .to.be.rejected instead
-      await invertP(browser.contextualIdentities.get(container.cookieStoreId));
+  describe('temporary containers', function () {
+    context('when empty', function () {
+      it('should be removed', async function () {
+        let container = (await containersCreated(background.handleBrowserAction))[0];
+        let tab = (await browser.tabs.query({cookieStoreId: container.cookieStoreId}))[0];
+        await browser.tabs.remove(tab.id);
+        // TODO: is the onRemoved() handler guaranteed, or even expected, to be
+        // called by now?
+        // TODO: This is a hack, should eventually bundle chai-as-promised and use
+        // .to.be.rejected instead
+        await invertP(browser.contextualIdentities.get(container.cookieStoreId));
+      });
     });
-  });
 
-  context('when a temporary container is renamed', function () {
-    it('should no longer be temporary');
+    context('when renamed', function () {
+      it('should no longer be temporary', async function () {
+        let csid = (await containersCreated(background.handleBrowserAction))[0].cookieStoreId;
+        let tab = (await browser.tabs.query({cookieStoreId: csid}))[0];
+        await browser.contextualIdentities.update(csid, {name: "A Container"});
+        await browser.tabs.remove(tab.id);
+        let container = await browser.contextualIdentities.get(csid);
+        expect(container.name).to.equal("A Container");
+      });
+    });
   });
 
   describe('rebuildDatabase()', function () {
