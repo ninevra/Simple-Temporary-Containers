@@ -14,7 +14,10 @@ browser.runtime.onInstalled.addListener(handleInstalled);
 browser.menus.create({
   contexts: ["link"],
   id: "new-temp-container-tab",
-  title: "Open Link in New Temp &Container Tab"
+  title: "Open Link in New Temp &Container Tab",
+  // Prevents menu item on e.g. javascript://
+  // TODO: somewhat overzealous
+  documentUrlPatterns: ["<all_urls>"]
 }, () => {
   if (browser.runtime.lastError) {
     console.error("Error encountered while creating context menu item",
