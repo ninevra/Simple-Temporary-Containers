@@ -106,4 +106,21 @@ describe('integration tests', function () {
     it('should create one container when key-command is entered');
   });
 
+  context('when a temporary container is empty', function () {
+    it('should be removed');
+  });
+
+  context('when a temporary container is renamed', function () {
+    it('should no longer be temporary');
+  });
+
+  describe('rebuildDatabase()', function () {
+    it('should record all open temporary containers & their tabs');
+    it('should remove empty temporary containers');
+
+    // TODO test these from outside the extension, possibly using "management"?
+    it('should trigger on install');
+    it('should trigger on update');
+    it('should trigger on browser launch');
+  });
 });
