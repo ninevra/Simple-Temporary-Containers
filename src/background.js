@@ -231,11 +231,11 @@ async function genName (container) {
   return "Temp " + await truncatedHash(container.cookieStoreId, 4);
 }
 
-// Checks whether a container's name and icon are consistent with containers
+// Checks whether a container's name is consistent with containers
 // produced by createContainer.  Any such container is considered managed by
 // this extension, and will be deleted when empty.
 async function isManagedContainer (container) {
-  return (container.name.startsWith("Temp") && container.icon == "circle"
+  return (container.name.startsWith("Temp ")
     && container.name == await genName(container));
 }
 
