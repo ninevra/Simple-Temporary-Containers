@@ -106,8 +106,24 @@ describe('integration tests', function () {
     it('should create one container when key-command is entered');
   });
 
-  context('when a temporary container is empty', function () {
-    it('should be removed');
+  // If the passed promise resolves, the returned promise rejects with the
+  // resolved value.  If the passed promise rejects, the returned promise
+  // resolves with the rejected value.
+  function invertP (promise) {
+    return promise.then(value => {throw value;}, error => error);
+  }
+
+  describe('empty temporary containers', function () {
+    it('should be removed', async function () {
+      let container = (await containersCreated(background.handleBrowserAction))[0];
+      let tab = (await browser.tabs.query({cookieStoreId: container.cookieStoreId}))[0];
+      await browser.tabs.remove(tab.id);
+      // TODO: is the onRemoved() handler guaranteed, or even expected, to be
+      // called by now?
+      // TODO: This is a hack, should eventually bundle chai-as-promised and use
+      // .to.be.rejected instead
+      await invertP(browser.contextualIdentities.get(container.cookieStoreId));
+    });
   });
 
   context('when a temporary container is renamed', function () {
