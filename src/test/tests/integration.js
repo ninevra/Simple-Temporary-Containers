@@ -141,11 +141,33 @@ describe('integration tests', function () {
 
   describe('rebuildDatabase()', function () {
     it('should record all open temporary containers & their tabs');
-    it('should remove empty temporary containers');
+    it('should remove empty temporary containers', async function () {
+      let csids = await Promise.all([0,1,2,3].map(async () => {
+        return (await background.createContainer()).cookieStoreId;
+      }));
+      console.log(csids);
+      await browser.tabs.create({cookieStoreId: csids[0]});
+      await browser.tabs.create({cookieStoreId: csids[2]});
+      await background.rebuildDatabase();
+      expect(await browser.contextualIdentities.get(csids[0])).to.exist;
+      await invertP(browser.contextualIdentities.get(csids[1]));
+      expect(await browser.contextualIdentities.get(csids[2])).to.exist;
+      await invertP(browser.contextualIdentities.get(csids[3]));
+    });
 
     // TODO test these from outside the extension, possibly using "management"?
-    it('should trigger on install');
+    it('should trigger on install', function () {
+      expect(background.browser.runtime.onInstalled.hasListener(
+        background.handleInstalled
+      )).to.be.true;
+      // TODO spy rebuildDatabase to ensure that it is called?
+    });
     it('should trigger on update');
-    it('should trigger on browser launch');
+    it('should trigger on browser launch', function () {
+      expect(background.browser.runtime.onStartup.hasListener(
+        background.handleStartup
+      )).to.be.true;
+      // TODO spy rebuildDatabase to ensure that it is called?
+    });
   });
 });
