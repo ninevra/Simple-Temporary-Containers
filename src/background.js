@@ -20,7 +20,17 @@ browser.menus.create({
   documentUrlPatterns: ["<all_urls>"]
 }, () => {
   if (browser.runtime.lastError) {
-    console.error("Error encountered while creating context menu item",
+    console.error("Error encountered while creating link context menu item",
+      browser.runtime.lastError);
+  }
+});
+browser.menus.create({
+  contexts: ["tab"],
+  id: "reopen-in-new-temp-container",
+  title: "Reopen in New &Temp Container",
+}, () => {
+  if (browser.runtime.lastError) {
+    console.error("Error encountered while creating tab context menu item",
       browser.runtime.lastError);
   }
 });
@@ -102,6 +112,15 @@ async function handleMenuItem (info, tab) {
       url: info.linkUrl,
       index: tab ? tab.index + 1 : undefined,
       active: false
+    });
+  } else if (info.menuItemId == "reopen-in-new-temp-container") {
+    console.log("tab menu click info:", info, "tab:", tab);
+    let container = await createContainer();
+    let newTab = await browser.tabs.create({
+      cookieStoreId: container.cookieStoreId,
+      url: info.pageUrl,
+      index: tab.index + 1,
+      active: tab.active
     });
   }
 }
