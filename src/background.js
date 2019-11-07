@@ -41,9 +41,9 @@ browser.menus.onClicked.addListener(handleMenuItem);
 
 // A Map whose keys are the cookieStoreIds of all containers managed here
 // and whose values are Sets of all tabIds open in the container
-const containers = new Map();
+var containers = new Map();
 // A Map from tabIds to cookieStoreIds of all tabs managed by this extension
-const tabs = new Map();
+var tabs = new Map();
 // A utf-8 TextEncoder
 const utf8Encoder = new TextEncoder();
 // An array of all names of allowed container colors

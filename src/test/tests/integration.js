@@ -10,22 +10,48 @@ describe('integration tests', function () {
     return after.flatMap(cont => !before.has(cont.cookieStoreId) ? [cont] : []);
   }
 
+  async function containersAndTabsCreated (work) {
+    let prevCsIds = new Set((await browser.contextualIdentities.query({}))
+      .map(cont => cont.cookieStoreId));
+    let prevTabIds = new Set((await browser.tabs.query({}))
+      .map(tab => tab.id));
+    await work();
+    let postCsIds = (await browser.contextualIdentities.query({}))
+      .map(cont => cont.cookieStoreId);
+    let postTabIds = (await browser.tabs.query({}))
+      .map(tab => tab.id);
+    let newCsIds = postCsIds.flatMap(csid => !prevCsIds.has(csid) ? [csid]: []);
+    let newTabIds = postTabIds.flatMap(id => !prevTabIds.has(id) ? [id]: []);
+    return {
+      containers: newCsIds,
+      tabs: newTabIds
+    };
+  }
+
   let tabIds;
 
-  beforeEach(async function () {
-    // Record previously open tabs
+  async function saveTabs () {
     let tabs = await browser.tabs.query({});
-    tabIds = new Set(tabs.map(tab => tab.id));
-  });
+    return new Set(tabs.map(tab => tab.id));
+  }
 
-  afterEach(async function () {
+  async function removeNewTabs (tabIds) {
     let newTabs = await browser.tabs.query({});
     for (let tab of newTabs) {
       if (!tabIds.has(tab.id)) {
         await browser.tabs.remove(tab.id);
       }
     }
-  })
+  }
+
+  beforeEach(async function () {
+    // Record previously open tabs
+    tabIds = await saveTabs();
+  });
+
+  afterEach(async function () {
+    removeNewTabs(tabIds);
+  });
 
   describe('browser action', function () {
     it('should create one container when browser action is clicked', async function () {
@@ -140,7 +166,61 @@ describe('integration tests', function () {
   });
 
   describe('rebuildDatabase()', function () {
-    it('should record all open temporary containers & their tabs');
+    it('should record all open temporary containers & their tabs', async function () {
+      // Create containers, tabs in a new window
+      let windowId = (await browser.windows.create()).id;
+      let {containers: tempCsIds, tabs: tempTabIds} = await containersAndTabsCreated(async () => {
+        for (let i = 0; i < 4; i++) {
+          await background.handleBrowserAction();
+        }
+      });
+      let otherContainers = [];
+      otherContainers.push(await browser.contextualIdentities.create({
+        name: "A Container",
+        color: "toolbar",
+        icon: "fingerprint"
+      }));
+      otherContainers.push(await browser.contextualIdentities.create({
+        name: "Another Container",
+        color: "green",
+        icon: "fingerprint"
+      }));
+      let otherTabs = [];
+      otherTabs.push(await browser.tabs.create({cookieStoreId: otherContainers[0].cookieStoreId}));
+      tempTabIds.push((await browser.tabs.create({cookieStoreId: tempCsIds[1]})).id);
+      otherTabs.push(await browser.tabs.create({cookieStoreId: otherContainers[1].cookieStoreId}));
+
+      // Run rebuildDatabase()
+      await background.rebuildDatabase();
+
+      // TODO: temp
+      console.log(background.containers, background.tabs);
+      console.log(tempCsIds, tempTabIds, otherContainers, otherTabs);
+
+      // Check database contents
+      for (let cookieStoreId of tempCsIds) {
+        expect(background.containers).to.include.keys(cookieStoreId);
+      }
+      for (let container of otherContainers) {
+        expect(background.containers).to.not.include.keys(container.cookieStoreId);
+      }
+      for (let tabId of tempTabIds) {
+        expect(background.tabs).to.include.keys(tabId);
+        expect(tempCsIds).to.include(background.tabs.get(tabId));
+      }
+      for (let tab of otherTabs) {
+        expect(background.tabs).to.not.include.keys(tab.id);
+      }
+
+      // Clean up created non-temp containers
+      await Promise.all(otherContainers.map(container => {
+        return browser.contextualIdentities.remove(container.cookieStoreId);
+      }));
+
+      // Clean up created window
+      await browser.windows.remove(windowId);
+    });
+
     it('should remove empty temporary containers', async function () {
       let csids = await Promise.all([0,1,2,3].map(async () => {
         return (await background.createContainer()).cookieStoreId;
