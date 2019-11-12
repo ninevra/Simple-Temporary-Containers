@@ -158,8 +158,11 @@ async function createContainer () {
 // Iterates through all containers and tabs to rebuild extension state
 async function rebuildDatabase () {
   console.time("rebuildDatabase");
-  // TODO: if this takes awhile, the results could be inconsistent, because
-  // browseraction could be used or tabs could be opened or closed
+  // TODO: if this takes awhile, the results could be inconsistent, because a
+  // tab could be removed before it is registered.  Unfortunately,
+  // tabs.onRemoved() can be a tab's first lifecycle event, as when the
+  // extension is reloaded or the browser restarted with a managed tab already
+  // open.
   // Wipe previous data // TODO: can there ever be any?
   containers.clear();
   tabs.clear();
@@ -244,9 +247,6 @@ async function forgetAndRemoveContainer (cookieStoreId) {
 // Generates a name for the given container
 // Name incorporates a hash of the container's cookieStoreId and color
 async function genName (container) {
-  // TODO: do we benefit by including color here? removing color and icon from
-  // checks would allow user to change them w/o "unmanaging" the container;
-  // cookieStoreId is already unique and persistent
   return "Temp " + await truncatedHash(container.cookieStoreId, 4);
 }
 
