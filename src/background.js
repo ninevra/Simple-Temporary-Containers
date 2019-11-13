@@ -14,7 +14,7 @@ browser.runtime.onInstalled.addListener(handleInstalled);
 browser.menus.create({
   contexts: ["link"],
   id: "new-temp-container-tab",
-  title: "Open Link in New Temp &Container Tab",
+  title: "Open Link in New Te&mp Container Tab",
   // Prevents menu item on e.g. javascript://
   // TODO: somewhat overzealous
   documentUrlPatterns: ["<all_urls>"]
