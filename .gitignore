@@ -2,6 +2,3 @@
 /bin/
 # ignore dependencies
 /node_modules/
-# ignore web-ext files
-/testing profile/
-/web-ext-artifacts/

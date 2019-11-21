@@ -64,7 +64,7 @@ function handleStartup () {
 
 // Handles extension being installed, reinstalled, or updated
 async function handleInstalled (details) {
-  // TODO if this is an update, does the data still exist?
+  // QUESTION: if this is an update, does the data still exist?
   await rebuildDatabase();
   if (details.temporary) {
     // Run tests
@@ -108,8 +108,8 @@ async function handleBrowserAction (activeTab) {
 // Handles the menu item being clicked
 // Open a new container and a new tab with the given link
 async function handleMenuItem (info, tab) {
-  // TODO: Handle srcUrls as well? would require registering the 'image' context
-  // TODO: Can tab parameter ever be missing in the registered contexts??
+  // IDEA: Handle srcUrls as well? would require registering the 'image' context
+  // QUESTION: Can tab parameter ever be missing in the registered contexts??
   if (info.menuItemId == "new-temp-container-tab") {
     let container = await createContainer();
     let newTab = await browser.tabs.create({
@@ -165,7 +165,7 @@ async function rebuildDatabase () {
   // tabs.onRemoved() can be a tab's first lifecycle event, as when the
   // extension is reloaded or the browser restarted with a managed tab already
   // open.
-  // Wipe previous data // TODO: can there ever be any?
+  // Wipe previous data // QUESTION: can there ever be any?
   containers.clear();
   tabs.clear();
   // check all extant containers
@@ -240,8 +240,8 @@ async function removeContainer (cookieStoreId) {
 async function forgetAndRemoveContainer (cookieStoreId) {
   forgetContainer(cookieStoreId);
   await removeContainer(cookieStoreId);
-  // TODO: An "Error: Invalid tab ID" is always logged after this, with the ID
-  // of the last tab removed. Is this a problem? Is it avoidable?
+  // QUESTION: An "Error: Invalid tab ID" is always logged after this, with the
+  // ID of the last tab removed. Is this a problem? Is it avoidable?
 }
 
 // Container Utilities:
@@ -265,8 +265,8 @@ async function isManagedContainer (container) {
 // Computes a hexadecimal string hash of the given string
 // Takes the first bytes of the sha1 digest
 async function truncatedHash(string, length) {
-  // TODO: Does endianness matter here? Can or should DataView be used instead
-  // of Uint8Array?
+  // QUESTION: Does endianness matter here? Can or should DataView be used
+  // instead of Uint8Array?
   let buffer = utf8Encoder.encode(string);
   let hashBuffer = await crypto.subtle.digest('SHA-1', buffer);
   let bytes = new Uint8Array(hashBuffer).slice(0, length);
