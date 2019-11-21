@@ -19,6 +19,5 @@ Requires no major permissions, and only minimal minor permissions:
 Roadmap:
 - [ ] Change build process to allow npm to manage mocha, chai dependencies.
 - [ ] Run unit tests in node and integration tests in e.g. selenium.
-- [ ] Restrict "Reopen in New Temp Container" menu item to non-priviledged urls.
 - [ ] Add an optional delay before removing empty temporary containers.
 - [ ] Add theme icons

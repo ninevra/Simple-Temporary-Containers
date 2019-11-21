@@ -28,6 +28,7 @@ browser.menus.create({
   contexts: ["tab"],
   id: "reopen-in-new-temp-container",
   title: "Reopen in New &Temp Container",
+  documentUrlPatterns: ["<all_urls>"]
 }, () => {
   if (browser.runtime.lastError) {
     console.error("Error encountered while creating tab context menu item",
