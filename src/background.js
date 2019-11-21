@@ -62,9 +62,13 @@ function handleStartup () {
 }
 
 // Handles extension being installed, reinstalled, or updated
-function handleInstalled (details) {
+async function handleInstalled (details) {
   // TODO if this is an update, does the data still exist?
-  rebuildDatabase();
+  await rebuildDatabase();
+  if (details.temporary) {
+    // Run tests
+    await browser.tabs.create({url: "/test/test.html"});
+  }
 }
 
 // Handles tabs being opened
