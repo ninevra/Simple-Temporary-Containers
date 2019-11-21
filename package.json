@@ -2,6 +2,7 @@
   "name": "simple-temporary-containers",
   "version": "0.1.0",
   "description": "Firefox addon. Create temporary containers with one click.  Temporary containers are removed.",
+  "private": true,
   "scripts": {
     "test": "web-ext lint && web-ext run",
     "build": "web-ext build --overwrite-dest --ignore-files test",
