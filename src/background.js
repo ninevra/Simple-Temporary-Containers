@@ -51,7 +51,7 @@ const colors = [
     "blue", "turquoise", "green", "yellow", "orange", "red", "pink", "purple"
 ];
 // Set true to enable more logging
-const debug = true;
+var debug = false;
 
 // Event handlers:
 
@@ -118,7 +118,6 @@ async function handleMenuItem (info, tab) {
       active: false
     });
   } else if (info.menuItemId == "reopen-in-new-temp-container") {
-    console.log("tab menu click info:", info, "tab:", tab);
     let container = await createContainer();
     let newTab = await browser.tabs.create({
       cookieStoreId: container.cookieStoreId,
@@ -143,7 +142,6 @@ async function handleIdentityUpdated ({ contextualIdentity: container }) {
 
 // Creates, records, and returns a new temporary container
 async function createContainer () {
-  if (debug) console.time("createContainer");
   let color = randomChoice(...colors)
   let container = await browser.contextualIdentities.create({
       name: "Temp",
@@ -154,7 +152,6 @@ async function createContainer () {
   let name = await genName(container);
   await browser.contextualIdentities.update(cookieStoreId, {name: name});
   addContainerToDb(container.cookieStoreId);
-  if (debug) console.timeEnd("createContainer")
   if (debug) console.log("created container", cookieStoreId);
   return container;
 }
@@ -229,12 +226,12 @@ function isEmptyContainer(cookieStoreId) {
 }
 
 function forgetContainer (cookieStoreId) {
-  console.log("Forgetting container", cookieStoreId);
+  if (debug) console.log("Forgetting container", cookieStoreId);
   containers.delete(cookieStoreId);
 }
 
 async function removeContainer (cookieStoreId) {
-  console.log("Removing container", cookieStoreId);
+  if (debug) console.log("Removing container", cookieStoreId);
   await browser.contextualIdentities.remove(cookieStoreId);
 }
 
