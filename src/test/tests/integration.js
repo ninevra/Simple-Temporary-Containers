@@ -165,6 +165,7 @@ describe('integration tests', function () {
         await browser.tabs.remove(tab.id);
         let container = await browser.contextualIdentities.get(csid);
         expect(container.name).to.equal("A Container");
+        await browser.contextualIdentities.remove(csid);
       });
     });
   });
