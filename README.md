@@ -20,4 +20,4 @@ Roadmap:
 - [ ] Change build process to allow npm to manage mocha, chai dependencies.
 - [ ] Run unit tests in node and integration tests in e.g. selenium.
 - [ ] Add an optional delay before removing empty temporary containers.
-- [ ] Add theme icons
+- [x] Add theme icons
