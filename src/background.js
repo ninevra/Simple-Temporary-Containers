@@ -262,6 +262,9 @@ async function isManagedContainer (container) {
 
 // Other Utiilities:
 
+// QUESTION: Does endianness matter here? Can or should DataView be used
+// instead of Uint8Array?
+
 // Computes a hexadecimal string hash of the given string
 // Takes the first bytes of the sha1 digest
 async function truncatedHash(string, length) {
@@ -272,6 +275,48 @@ async function truncatedHash(string, length) {
   let bytes = new Uint8Array(hashBuffer).slice(0, length);
   let hexBytes = [...bytes].map(i => i.toString(16).padStart(2, '0'));
   return hexBytes.join('');
+}
+
+async function hash(string, hashType) {
+  let buffer = utf8Encoder.encode(string);
+  let hashBuffer = await crypto.subtle.digest(hashType, buffer);
+  let bytes = new Uint8Array(hashBuffer);
+  return toHexString(bytes);
+}
+
+async function sha1(string) {
+  return await hash(string, 'SHA-1');
+}
+
+// Returns a hexadecimal string encoding the provided Uint8Array
+function toHexString(byteArray) {
+  return [...byteArray].map(i => i.toString(16).padStart(2, '0')).join('');
+}
+
+// Returns a hash of the input strings, constructed by hashing the concatenation
+// of them and their lengths
+async function hashConcat(...strings) {
+  let data = strings.map(s => s.length.toString(16) + '.' + s)
+    .reduce((s1, s2) => s1 + s2);
+  return await sha1(data);
+}
+
+// Returns an ArrayBuffer containing the concatenation of the data in the
+// provided ArrayBuffers.
+function concatBuffers(...buffers) {
+  let arrays = buffers.map(b => Array.from(new Uint8Array(b)));
+  let concatArray = [].concat(...arrays);
+  return Uint8Array.from(concatArray).buffer;
+}
+
+// Returns a hash of the input strings, constructed by hashing the concatenation
+// of their hashes
+async function hashList(...strings) {
+  let buffers = strings.map(s => utf8Encoder.encode(s));
+  let hashListBuffers = await Promise.all(buffers.map(b => crypto.subtle.digest('SHA-1', b)));
+  let hashListBuffer = concatBuffers(...hashListBuffers);
+  let topHashBuffer = await crypto.subtle.digest('SHA-1', hashListBuffer);
+  return toHexString(new Uint8Array(topHashBuffer));
 }
 
 // Returns one of its arguments, chosen at random
