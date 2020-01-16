@@ -69,7 +69,7 @@ describe('integration tests', function () {
         )
       ).to.be.true;
       let diff = await containersCreated(async () =>
-        await background.handleBrowserAction()
+        await background.handleBrowserAction(await browser.tabs.getCurrent())
       );
       expect(diff).to.have.lengthOf(1);
     });
@@ -146,7 +146,9 @@ describe('integration tests', function () {
   describe('temporary containers', function () {
     context('when empty', function () {
       it('should be removed', async function () {
-        let container = (await containersCreated(background.handleBrowserAction))[0];
+        let container = (await containersCreated(
+          async () => await background.handleBrowserAction(await browser.tabs.getCurrent())
+        ))[0];
         let tab = (await browser.tabs.query({cookieStoreId: container.cookieStoreId}))[0];
         await browser.tabs.remove(tab.id);
         // TODO: is the onRemoved() handler guaranteed, or even expected, to be
@@ -159,7 +161,9 @@ describe('integration tests', function () {
 
     context('when renamed', function () {
       it('should no longer be temporary', async function () {
-        let csid = (await containersCreated(background.handleBrowserAction))[0].cookieStoreId;
+        let csid = (await containersCreated(
+          async () => await background.handleBrowserAction(await browser.tabs.getCurrent())
+        ))[0].cookieStoreId;
         let tab = (await browser.tabs.query({cookieStoreId: csid}))[0];
         await browser.contextualIdentities.update(csid, {name: "A Container"});
         await browser.tabs.remove(tab.id);
@@ -176,7 +180,7 @@ describe('integration tests', function () {
       let windowId = (await browser.windows.create()).id;
       let {containers: tempCsIds, tabs: tempTabIds} = await containersAndTabsCreated(async () => {
         for (let i = 0; i < 4; i++) {
-          await background.handleBrowserAction();
+          await background.handleBrowserAction(await browser.tabs.getCurrent());
         }
       });
       let otherContainers = [];

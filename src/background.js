@@ -99,7 +99,9 @@ async function handleTabRemoved (tabId, removeInfo) {
 // Handles the browserAction being clicked
 // Create a new container and an empty tab in that container
 async function handleBrowserAction (activeTab) {
-  let container = await createContainer();
+  // tab will be created at end of window. banned colors: last tab in window, current active tab
+  let blacklist = await tabColors(activeTab, await rightmostTab(activeTab.windowId));
+  let container = await createContainer(blacklist);
   let tab = await browser.tabs.create({
     cookieStoreId: container.cookieStoreId
   });
@@ -111,7 +113,16 @@ async function handleMenuItem (info, tab) {
   // IDEA: Handle srcUrls as well? would require registering the 'image' context
   // QUESTION: Can tab parameter ever be missing in the registered contexts??
   if (info.menuItemId == "new-temp-container-tab") {
-    let container = await createContainer();
+    // tab will be created after this tab. banned colors: this tab, next tab
+    let blacklist = [];
+    if (tab) {
+      blacklist.push(await tabColor(tab));
+      let next = await nextTab(tab);
+      if (next) {
+        blacklist.push(await tabColor(next));
+      }
+    }
+    let container = await createContainer(blacklist);
     let newTab = await browser.tabs.create({
       cookieStoreId: container.cookieStoreId,
       url: info.linkUrl,
@@ -119,7 +130,13 @@ async function handleMenuItem (info, tab) {
       active: false
     });
   } else if (info.menuItemId == "reopen-in-new-temp-container") {
-    let container = await createContainer();
+    // tab will be created after this tab. banned colors: this tab, next tab
+    let blacklist = [await tabColor(tab)];
+    let next = await nextTab(tab);
+    if (next) {
+      blacklist.push(await tabColor(next));
+    }
+    let container = await createContainer(blacklist);
     let newTab = await browser.tabs.create({
       cookieStoreId: container.cookieStoreId,
       url: info.pageUrl,
@@ -142,8 +159,10 @@ async function handleIdentityUpdated ({ contextualIdentity: container }) {
 // State Operations:
 
 // Creates, records, and returns a new temporary container
-async function createContainer () {
-  let color = randomChoice(...colors)
+async function createContainer (blacklist=[]) {
+  let legalColors = new Set(colors);
+  blacklist.forEach(color => legalColors.delete(color));
+  let color = randomChoice(...legalColors);
   let container = await browser.contextualIdentities.create({
       name: "Temp",
       color: color,
@@ -351,4 +370,39 @@ async function hashList(...strings) {
 // Returns one of its arguments, chosen at random
 function randomChoice (...options) {
   return options[Math.floor(Math.random() * options.length)];
+}
+
+// Returns the color name of the given tab's container, or undefined if there is
+// none (e.g., the container is firefox-default)
+async function tabColor(tab) {
+  let csid = tab.cookieStoreId;
+  try {
+    let container = await browser.contextualIdentities.get(csid);
+    return container.color;
+  } catch (e) {
+    return undefined;
+  }
+}
+
+// Returns an array containing the container color names of every given tab that
+// has one
+async function tabColors(...tabs) {
+  return (await Promise.all(tabs.map(tabColor))).flatMap(c => c ? [c] : []);
+}
+
+// Returns the tabs.Tab of the rightmost tab in the given window
+// TODO: can a window have 0 tabs?
+async function rightmostTab(windowId) {
+  let tabs = await browser.tabs.query({windowId: windowId});
+  return tabs[tabs.length - 1];
+}
+
+// Returns the tab following the given one, or undefined if there is none
+async function nextTab(tab) {
+  let tabs = await browser.tabs.query({windowId: tab.windowId, index: tab.index + 1});
+  if (tabs.length > 0) {
+    return tabs[0];
+  } else {
+    return undefined;
+  }
 }
