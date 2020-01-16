@@ -21,3 +21,4 @@ Roadmap:
 - [ ] Run unit tests in node and integration tests in e.g. selenium.
 - [ ] Add an optional delay before removing empty temporary containers.
 - [x] Add theme icons
+- [x] Prevent container names from repeating on reinstall

@@ -134,22 +134,78 @@ describe('unit tests', function () {
     });
   });
 
-  describe('genName()', function () {
+  describe('isManagedContainer()', function () {
+    let isManagedContainer = background.isManagedContainer;
 
-    let genName = background.genName;
-
-    it('should produce different names for containers with different cookieStoreIds', async function () {
-      let name1 = await genName({cookieStoreId: "OneTwo", color: "Three"});
-      let name2 = await genName({cookieStoreId: "One", color: "TwoThree"});
-      expect(name1).to.not.equal(name2);
+    it('should recognize containers created under 0.1.0', async function () {
+      let containers = [
+        {
+          "name": "Temp 4578b21d",
+          "icon": "circle",
+          "iconUrl": "resource://usercontext-content/circle.svg",
+          "color": "blue",
+          "colorCode": "#37adff",
+          "cookieStoreId": "firefox-container-3471"
+        },
+        {
+          "name": "Temp 42e9dcea",
+          "icon": "circle",
+          "iconUrl": "resource://usercontext-content/circle.svg",
+          "color": "green",
+          "colorCode": "#51cd00",
+          "cookieStoreId": "firefox-container-5799"
+        }
+      ];
+      for (let container of containers) {
+        expect(await isManagedContainer(container)).to.be.true;
+      }
     });
 
-    it('should produce the same name for container with same cookieStoreId', async function () {
-      let name1 = await genName({cookieStoreId: "csid", color: "blue", name: "hi"});
-      let name2 = await genName({cookieStoreId: "csid", color: "turquoise", name: "hi"});
-      let name3 = await genName({cookieStoreId: "csid", color: "blue", name: "world"});
-      expect(name2).to.equal(name1);
-      expect(name3).to.equal(name1);
+    it('should recognize current containers', async function () {
+      let containers = [
+        {
+          "icon": "circle",
+          "iconUrl": "resource://usercontext-content/circle.svg",
+          "color": "blue",
+          "colorCode": "#37adff",
+          "cookieStoreId": "firefox-container-3471"
+        },
+        {
+          "icon": "circle",
+          "iconUrl": "resource://usercontext-content/circle.svg",
+          "color": "green",
+          "colorCode": "#51cd00",
+          "cookieStoreId": "firefox-container-5799"
+        }
+      ];
+      for (let container of containers) {
+        container.name = await background.genName(container);
+        expect(await isManagedContainer(container)).to.be.true;
+      }
+    });
+
+    it('should not recognize non-temporary containers', async function () {
+      let containers = [
+        {
+          "name": "Shopping",
+          "icon": "circle",
+          "iconUrl": "resource://usercontext-content/circle.svg",
+          "color": "blue",
+          "colorCode": "#37adff",
+          "cookieStoreId": "firefox-container-3471"
+        },
+        {
+          "name": "Temp a1a1a1a1",
+          "icon": "circle",
+          "iconUrl": "resource://usercontext-content/circle.svg",
+          "color": "green",
+          "colorCode": "#51cd00",
+          "cookieStoreId": "firefox-container-5799"
+        }
+      ];
+      for (let container of containers) {
+        expect(await isManagedContainer(container)).to.be.false;
+      }
     });
   });
 

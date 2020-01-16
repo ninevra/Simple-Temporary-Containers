@@ -247,17 +247,47 @@ async function forgetAndRemoveContainer (cookieStoreId) {
 // Container Utilities:
 
 // Generates a name for the given container
-// Name incorporates a hash of the container's cookieStoreId and color
+// Name incorporates a random byte and a hash of that byte and the container's
+// cookieStoreId
 async function genName (container) {
-  return "Temp " + await truncatedHash(container.cookieStoreId, 4);
+  // A random byte
+  let seedByte = crypto.getRandomValues(new Uint8Array(1));
+  // A hexadecimal string encoding the random byte
+  let seedString = toHexString(seedByte);
+  // A hash value
+  let hash = await hashConcat(seedString, container.cookieStoreId);
+  return "Temp " + seedString + hash.slice(0, 6);
 }
 
-// Checks whether a container's name is consistent with containers
-// produced by createContainer.  Any such container is considered managed by
-// this extension, and will be deleted when empty.
+var managedContainerChecks = new Map();
+managedContainerChecks.set('0.1.0', async function (container) {
+  let match = container.name.match(/^Temp ([a-f\d]{8})$/);
+  return match && match[1] === (await sha1(container.cookieStoreId)).slice(0, 8);
+});
+managedContainerChecks.set('0.2.0', async function (container) {
+  let match = container.name.match(/^Temp ([a-f\d]{2})([a-f\d]{6}$)/);
+  if (match) {
+    let [, seed, hash] = match;
+    let expectation = (await hashConcat(seed, container.cookieStoreId)).slice(0, 6);
+    if (hash === expectation) {
+      return true;
+    }
+  }
+  return false;
+});
+
+// Checks whether a container's name is consistent with containers produced by
+// createContainer. Any such container is considered managed by this extension,
+// and will be deleted when empty.
 async function isManagedContainer (container) {
-  return (container.name.startsWith("Temp ")
-    && container.name == await genName(container));
+  if (container.name.startsWith("Temp ")) {
+    for (let checker of managedContainerChecks.values()) {
+      if (await checker(container)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 // Other Utiilities:
@@ -296,8 +326,7 @@ function toHexString(byteArray) {
 // Returns a hash of the input strings, constructed by hashing the concatenation
 // of them and their lengths
 async function hashConcat(...strings) {
-  let data = strings.map(s => s.length.toString(16) + '.' + s)
-    .reduce((s1, s2) => s1 + s2);
+  let data = strings.map(s => s.length.toString(16) + '.' + s).join('');
   return await sha1(data);
 }
 
