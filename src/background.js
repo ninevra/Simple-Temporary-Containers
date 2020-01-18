@@ -160,9 +160,7 @@ async function handleIdentityUpdated ({ contextualIdentity: container }) {
 
 // Creates, records, and returns a new temporary container
 async function createContainer (blacklist=[]) {
-  let legalColors = new Set(colors);
-  blacklist.forEach(color => legalColors.delete(color));
-  let color = randomChoice(...legalColors);
+  let color = randomColor(...blacklist);
   let container = await browser.contextualIdentities.create({
       name: "Temp",
       color: color,
@@ -365,6 +363,12 @@ async function hashList(...strings) {
   let hashListBuffer = concatBuffers(...hashListBuffers);
   let topHashBuffer = await crypto.subtle.digest('SHA-1', hashListBuffer);
   return toHexString(new Uint8Array(topHashBuffer));
+}
+
+// Returns a container color, chosen at random, excluding the arguments
+function randomColor (...blacklist) {
+  blacklist = new Set(blacklist);
+  return randomChoice(...colors.filter(color => !blacklist.has(color)));
 }
 
 // Returns one of its arguments, chosen at random
