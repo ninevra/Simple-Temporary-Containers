@@ -48,7 +48,7 @@ var tabs = new Map();
 // A utf-8 TextEncoder
 const utf8Encoder = new TextEncoder();
 // An array of all names of allowed container colors
-const colors = [
+var colors = [
     "blue", "turquoise", "green", "yellow", "orange", "red", "pink", "purple"
 ];
 // Set true to enable more logging

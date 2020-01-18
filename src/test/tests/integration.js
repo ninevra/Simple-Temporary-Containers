@@ -54,7 +54,7 @@ describe('integration tests', function () {
   });
 
   afterEach(async function () {
-    removeNewTabs(tabIds);
+    await removeNewTabs(tabIds);
   });
 
   describe('browser action', function () {
@@ -259,4 +259,76 @@ describe('integration tests', function () {
       // TODO spy rebuildDatabase to ensure that it is called?
     });
   });
+
+  describe('container colors', function () {
+    beforeEach(function () {
+      sinon.spy(background, 'randomChoice');
+    });
+
+    afterEach(function () {
+      background.randomChoice.restore();
+    });
+
+    function expectBannedColors(...bannedColors) {
+      let allowedColors = background.colors.filter(color => !bannedColors.includes(color));
+      expect(background.randomChoice.calledOnce).to.be.true;
+      expect(background.randomChoice.getCall(0).args).to.have.members(allowedColors);
+    }
+
+    describe('browser action', function () {
+      it('should use a different color than the current and last tabs', async function () {
+        let containers = await Promise.all(['blue', 'turquoise', 'green'].map(color =>
+          browser.contextualIdentities.create({
+            name: color, color: color, icon: 'fence'
+          })
+        ));
+        let tabs = [];
+        for (let container of containers) {
+          tabs.push(await browser.tabs.create({cookieStoreId: container.cookieStoreId}));
+        }
+        await background.handleBrowserAction(tabs[0]);
+        expectBannedColors('blue', 'green');
+      });
+    });
+
+    describe('link context menu item', function () {
+      it('should use a different color than the current and next tabs', async function () {
+        let containers = await Promise.all(['yellow', 'orange', 'red'].map(color =>
+          browser.contextualIdentities.create({
+            name: color, color: color, icon: 'fence'
+          })
+        ));
+        let tabs = [];
+        for (let container of containers) {
+          tabs.push(await browser.tabs.create({cookieStoreId: container.cookieStoreId}));
+        }
+        await background.handleMenuItem(
+          {menuItemId: 'new-temp-container-tab', linkUrl: 'about:blank'},
+          tabs[1]
+        );
+        expectBannedColors('orange', 'red');
+      });
+    });
+
+    describe('tab context menu item', function () {
+      it('should use a different color than the current and next tabs', async function () {
+        let containers = await Promise.all(['yellow', 'orange', 'red'].map(color =>
+          browser.contextualIdentities.create({
+            name: color, color: color, icon: 'fence'
+          })
+        ));
+        let tabs = [];
+        for (let container of containers) {
+          tabs.push(await browser.tabs.create({cookieStoreId: container.cookieStoreId}));
+        }
+        await background.handleMenuItem(
+          {menuItemId: 'reopen-in-new-temp-container', pageUrl: 'about:blank'},
+          tabs[1]
+        );
+        expectBannedColors('orange', 'red');
+      });
+    });
+
+  });
+
 });
