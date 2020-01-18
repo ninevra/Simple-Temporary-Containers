@@ -22,3 +22,4 @@ Roadmap:
 - [ ] Add an optional delay before removing empty temporary containers.
 - [x] Add theme icons
 - [x] Prevent container names from repeating on reinstall
+- [x] Prevent new temp containers from using confusing colors
