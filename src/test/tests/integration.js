@@ -32,29 +32,39 @@ describe('integration tests', function () {
     };
   }
 
-  let tabIds;
-
-  async function saveTabs () {
-    let tabs = await browser.tabs.query({});
-    return new Set(tabs.map(tab => tab.id));
-  }
-
-  async function removeNewTabs (tabIds) {
-    let newTabs = await browser.tabs.query({});
-    for (let tab of newTabs) {
-      if (!tabIds.has(tab.id)) {
-        await browser.tabs.remove(tab.id);
-      }
-    }
-  }
-
-  beforeEach(async function () {
-    // Record previously open tabs
-    tabIds = await saveTabs();
+  beforeEach(function () {
+    // Records tabs created by the test
+    sinon.spy(browser.tabs, 'create');
+    // Records tabs created by the extension
+    sinon.spy(background.browser.tabs, 'create');
+    // Records containers created by the test
+    sinon.spy(browser.contextualIdentities, 'create');
+    // Records containers created by the extension
+    sinon.spy(background.browser.contextualIdentities, 'create');
   });
 
   afterEach(async function () {
-    await removeNewTabs(tabIds);
+    // Remove tabs created by test
+    const testTabs = await Promise.all(browser.tabs.create.returnValues);
+    await Promise.all(testTabs.map(tab => browser.tabs.remove(tab.id).catch(() => {})));
+    // Remove tabs created by extension
+    const extTabs = await Promise.all(background.browser.tabs.create.returnValues);
+    await Promise.all(extTabs.map(tab => browser.tabs.remove(tab.id).catch(() => {})));
+    // Remove containers created by test
+    const testContainers = await Promise.all(browser.contextualIdentities.create.returnValues);
+    await Promise.all(testContainers.map(container =>
+      browser.contextualIdentities.remove(container.cookieStoreId).catch(() => {})
+    ));
+    // Remove container create by extension
+    const extContainers = await Promise.all(background.browser.contextualIdentities.create.returnValues);
+    await Promise.all(extContainers.map(container =>
+      browser.contextualIdentities.remove(container.cookieStoreId).catch(() => {})
+    ));
+    // Restore spies
+    browser.tabs.create.restore();
+    background.browser.tabs.create.restore();
+    browser.contextualIdentities.create.restore();
+    background.browser.contextualIdentities.create.restore();
   });
 
   describe('browser action', function () {
@@ -169,7 +179,6 @@ describe('integration tests', function () {
         await browser.tabs.remove(tab.id);
         let container = await browser.contextualIdentities.get(csid);
         expect(container.name).to.equal("A Container");
-        await browser.contextualIdentities.remove(csid);
       });
     });
   });
@@ -220,11 +229,6 @@ describe('integration tests', function () {
       for (let tab of otherTabs) {
         expect(background.tabs).to.not.include.keys(tab.id);
       }
-
-      // Clean up created non-temp containers
-      await Promise.all(otherContainers.map(container => {
-        return browser.contextualIdentities.remove(container.cookieStoreId);
-      }));
 
       // Clean up created window
       await browser.windows.remove(windowId);
