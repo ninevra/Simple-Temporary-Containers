@@ -7,7 +7,7 @@
     "test": "web-ext lint && web-ext run",
     "build": "web-ext build --overwrite-dest --ignore-files test",
     "build:test": "web-ext build --overwrite-dest",
-    "lint": "xo src/background.js"
+    "lint": "xo src/background.js src/test/*.js src/test/tests/*.js"
   },
   "repository": {
     "type": "git",
@@ -38,6 +38,18 @@
     "space": true,
     "rules": {
       "no-var": "off"
-    }
+    },
+    "overrides": [
+      {
+        "files": "src/test/**/*.js",
+        "envs": ["webextensions", "browser", "mocha"],
+        "globals": ["chai", "sinon", "expect"],
+        "rules": {
+          "no-unused-expressions": "off",
+          "max-nested-callbacks": ["warn", { "max": 6 }],
+          "no-await-in-loop": "warn"
+        }
+      }
+    ]
   }
 }
