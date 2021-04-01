@@ -295,7 +295,6 @@ describe('integration tests', () => {
           return (await app.createContainer()).cookieStoreId;
         })
       );
-      console.log(csids);
       await browser.tabs.create({ cookieStoreId: csids[0] });
       await browser.tabs.create({ cookieStoreId: csids[2] });
       await app.rebuildDatabase();
