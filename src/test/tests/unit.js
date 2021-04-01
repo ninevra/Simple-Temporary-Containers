@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-describe('unit tests', () => {
-  const background = browser.extension.getBackgroundPage();
+import { toHexString, hashConcat, sha1 } from '../../util.js';
+import { isManagedContainer, genName } from '../../container-util.js';
 
+describe('unit tests', () => {
   describe('hash-related utilities', () => {
     describe('toHexString()', () => {
-      const toHexString = background.toHexString;
-
       it('should convert Uint8Arrays to hexadecimal strings', () => {
         expect(toHexString(Uint8Array.of(255))).to.equal('ff');
       });
@@ -20,8 +19,6 @@ describe('unit tests', () => {
     });
 
     describe('hashConcat()', () => {
-      const hashConcat = background.hashConcat;
-
       it('should return a SHA-1 hash', async () => {
         expect(await hashConcat('')).to.match(/[\da-z]{40}/);
         expect(await hashConcat('hello', 'again', 'world')).to.match(
@@ -44,7 +41,6 @@ describe('unit tests', () => {
     });
 
     describe('sha1()', () => {
-      const sha1 = background.sha1;
       const strings = ['test string', 'hello world', ''];
       const expectation = [
         '661295c9cbf9d6b2f6428414504a8deed3020641',
@@ -62,8 +58,6 @@ describe('unit tests', () => {
   });
 
   describe('isManagedContainer()', () => {
-    const isManagedContainer = background.isManagedContainer;
-
     it('should recognize containers created under 0.1.0', async () => {
       const containers = [
         {
@@ -106,7 +100,7 @@ describe('unit tests', () => {
         },
       ];
       for (const container of containers) {
-        container.name = await background.genName(container);
+        container.name = await genName(container);
         expect(await isManagedContainer(container)).to.be.true;
       }
     });

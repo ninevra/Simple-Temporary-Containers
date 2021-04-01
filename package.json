@@ -7,7 +7,7 @@
     "test": "web-ext lint && web-ext run",
     "build": "web-ext build --overwrite-dest --ignore-files test",
     "build:test": "web-ext build --overwrite-dest",
-    "lint": "xo src/background.js src/test/*.js src/test/tests/*.js"
+    "lint": "xo src/*.js src/test/*.js src/test/tests/*.js"
   },
   "repository": {
     "type": "git",

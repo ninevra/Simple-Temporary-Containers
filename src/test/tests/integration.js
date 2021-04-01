@@ -4,6 +4,7 @@
 
 describe('integration tests', () => {
   const background = browser.extension.getBackgroundPage();
+  const app = background.app;
 
   async function containersCreated(work) {
     const before = new Set(
@@ -99,11 +100,11 @@ describe('integration tests', () => {
       // browser and the listener are on/from the same page
       expect(
         background.browser.browserAction.onClicked.hasListener(
-          background.handleBrowserAction
+          app.handleBrowserAction
         )
       ).to.be.true;
       const diff = await containersCreated(async () =>
-        background.handleBrowserAction(await browser.tabs.getCurrent())
+        app.handleBrowserAction(await browser.tabs.getCurrent())
       );
       expect(diff).to.have.lengthOf(1);
     });
@@ -113,16 +114,13 @@ describe('integration tests', () => {
     it('should listen for clicks', async () => {
       // TODO: API provides no way to check if menu item exists, is enabled, or
       // is visible
-      expect(
-        background.browser.menus.onClicked.hasListener(
-          background.handleMenuItem
-        )
-      ).to.be.true;
+      expect(background.browser.menus.onClicked.hasListener(app.handleMenuItem))
+        .to.be.true;
     });
     context('without a provided tabs.Tab', () => {
       it('should open in a new temp container', async () => {
         const diff = await containersCreated(async () => {
-          await background.handleMenuItem({
+          await app.handleMenuItem({
             menuItemId: 'new-temp-container-tab', // TODO: assert other ids are ignored
             linkUrl: 'about:blank',
             // TODO: test with and without a tab (.index)
@@ -142,7 +140,7 @@ describe('integration tests', () => {
         let leftTab = await browser.tabs.create({});
         let rightTab = await browser.tabs.create({ index: leftTab.index + 1 });
         const diff = await containersCreated(async () => {
-          await background.handleMenuItem(
+          await app.handleMenuItem(
             {
               menuItemId: 'new-temp-container-tab',
               linkUrl: 'about:blank',
@@ -191,7 +189,7 @@ describe('integration tests', () => {
       it('should be removed', async () => {
         const container = (
           await containersCreated(async () =>
-            background.handleBrowserAction(await browser.tabs.getCurrent())
+            app.handleBrowserAction(await browser.tabs.getCurrent())
           )
         )[0];
         const tab = (
@@ -212,7 +210,7 @@ describe('integration tests', () => {
       it('should no longer be temporary', async () => {
         const csid = (
           await containersCreated(async () =>
-            background.handleBrowserAction(await browser.tabs.getCurrent())
+            app.handleBrowserAction(await browser.tabs.getCurrent())
           )
         )[0].cookieStoreId;
         const tab = (await browser.tabs.query({ cookieStoreId: csid }))[0];
@@ -235,7 +233,7 @@ describe('integration tests', () => {
         tabs: temporaryTabIds,
       } = await containersAndTabsCreated(async () => {
         for (let i = 0; i < 4; i++) {
-          await background.handleBrowserAction(await browser.tabs.getCurrent());
+          await app.handleBrowserAction(await browser.tabs.getCurrent());
         }
       });
       const otherContainers = [];
@@ -267,26 +265,24 @@ describe('integration tests', () => {
       );
 
       // Run rebuildDatabase()
-      await background.rebuildDatabase();
+      await app.rebuildDatabase();
 
       // Check database contents
       for (const cookieStoreId of temporaryCsIds) {
-        expect(background.containers).to.include.keys(cookieStoreId);
+        expect(app.containers).to.include.keys(cookieStoreId);
       }
 
       for (const container of otherContainers) {
-        expect(background.containers).to.not.include.keys(
-          container.cookieStoreId
-        );
+        expect(app.containers).to.not.include.keys(container.cookieStoreId);
       }
 
       for (const tabId of temporaryTabIds) {
-        expect(background.tabs).to.include.keys(tabId);
-        expect(temporaryCsIds).to.include(background.tabs.get(tabId));
+        expect(app.tabs).to.include.keys(tabId);
+        expect(temporaryCsIds).to.include(app.tabs.get(tabId));
       }
 
       for (const tab of otherTabs) {
-        expect(background.tabs).to.not.include.keys(tab.id);
+        expect(app.tabs).to.not.include.keys(tab.id);
       }
 
       // Clean up created window
@@ -296,13 +292,13 @@ describe('integration tests', () => {
     it('should remove empty temporary containers', async () => {
       const csids = await Promise.all(
         [0, 1, 2, 3].map(async () => {
-          return (await background.createContainer()).cookieStoreId;
+          return (await app.createContainer()).cookieStoreId;
         })
       );
       console.log(csids);
       await browser.tabs.create({ cookieStoreId: csids[0] });
       await browser.tabs.create({ cookieStoreId: csids[2] });
-      await background.rebuildDatabase();
+      await app.rebuildDatabase();
       expect(await browser.contextualIdentities.get(csids[0])).to.exist;
       await invertP(browser.contextualIdentities.get(csids[1]));
       expect(await browser.contextualIdentities.get(csids[2])).to.exist;
@@ -312,66 +308,49 @@ describe('integration tests', () => {
     // TODO test these from outside the extension, possibly using "management"?
     it('should trigger on install', () => {
       expect(
-        background.browser.runtime.onInstalled.hasListener(
-          background.handleInstalled
-        )
+        background.browser.runtime.onInstalled.hasListener(app.handleInstalled)
       ).to.be.true;
       // TODO spy rebuildDatabase to ensure that it is called?
     });
     it('should trigger on update');
     it('should trigger on browser launch', () => {
       expect(
-        background.browser.runtime.onStartup.hasListener(
-          background.handleStartup
-        )
+        background.browser.runtime.onStartup.hasListener(app.handleStartup)
       ).to.be.true;
       // TODO spy rebuildDatabase to ensure that it is called?
     });
   });
 
   describe('container colors', () => {
-    beforeEach(() => {
-      sinon.spy(background, 'randomChoice');
-    });
-
-    afterEach(() => {
-      background.randomChoice.restore();
-    });
-
-    function expectBannedColors(...bannedColors) {
-      const allowedColors = background.colors.filter(
-        (color) => !bannedColors.includes(color)
-      );
-      expect(background.randomChoice.calledOnce).to.be.true;
-      expect(background.randomChoice.getCall(0).args).to.have.members(
-        allowedColors
-      );
+    async function repeat(n, fn) {
+      while (n > 0) {
+        n--;
+        await fn(); // eslint-disable-line no-await-in-loop
+      }
     }
 
     describe('browser action', () => {
       it('should use a different color than the current and last tabs', async () => {
-        const containers = await Promise.all(
-          ['blue', 'turquoise', 'green'].map((color) =>
-            browser.contextualIdentities.create({
-              name: color,
-              color,
-              icon: 'fence',
-            })
-          )
-        );
-        const tabs = [];
-        await Promise.all(
-          containers.map(async (container) => {
-            tabs.push(
-              await browser.tabs.create({
-                cookieStoreId: container.cookieStoreId,
-              })
-            );
-          })
-        );
+        const { cookieStoreId } = await browser.contextualIdentities.create({
+          name: 'blue',
+          color: 'blue',
+          icon: 'fence',
+        });
+        const tab = await browser.tabs.create({ cookieStoreId });
 
-        await background.handleBrowserAction(tabs[0]);
-        expectBannedColors('blue', 'green');
+        let last = 'blue';
+
+        await repeat(20, async () => {
+          const {
+            containers: [csid],
+          } = await containersAndTabsCreated(async () =>
+            app.handleBrowserAction(tab)
+          );
+          const { color } = await browser.contextualIdentities.get(csid);
+          expect(color).not.to.equal('blue');
+          expect(color).not.to.equal(last);
+          last = color;
+        });
       });
     });
 
@@ -387,21 +366,26 @@ describe('integration tests', () => {
           )
         );
         const tabs = [];
-        await Promise.all(
-          containers.map(async (container) => {
-            tabs.push(
-              await browser.tabs.create({
-                cookieStoreId: container.cookieStoreId,
-              })
-            );
-          })
-        );
+        for (const { cookieStoreId } of containers) {
+          tabs.push(await browser.tabs.create({ cookieStoreId })); // eslint-disable-line no-await-in-loop
+        }
 
-        await background.handleMenuItem(
-          { menuItemId: 'new-temp-container-tab', linkUrl: 'about:blank' },
-          tabs[1]
-        );
-        expectBannedColors('orange', 'red');
+        let next = 'red';
+
+        await repeat(20, async () => {
+          const {
+            containers: [csid],
+          } = await containersAndTabsCreated(async () =>
+            app.handleMenuItem(
+              { menuItemId: 'new-temp-container-tab', linkUrl: 'about:blank' },
+              tabs[1]
+            )
+          );
+          const { color } = await browser.contextualIdentities.get(csid);
+          expect(color).not.to.equal('orange');
+          expect(color).not.to.equal(next);
+          next = color;
+        });
       });
     });
 
@@ -417,24 +401,29 @@ describe('integration tests', () => {
           )
         );
         const tabs = [];
-        await Promise.all(
-          containers.map(async (container) => {
-            tabs.push(
-              await browser.tabs.create({
-                cookieStoreId: container.cookieStoreId,
-              })
-            );
-          })
-        );
+        for (const { cookieStoreId } of containers) {
+          tabs.push(await browser.tabs.create({ cookieStoreId })); // eslint-disable-line no-await-in-loop
+        }
 
-        await background.handleMenuItem(
-          {
-            menuItemId: 'reopen-in-new-temp-container',
-            pageUrl: 'about:blank',
-          },
-          tabs[1]
-        );
-        expectBannedColors('orange', 'red');
+        let next = 'red';
+
+        await repeat(20, async () => {
+          const {
+            containers: [csid],
+          } = await containersAndTabsCreated(async () =>
+            app.handleMenuItem(
+              {
+                menuItemId: 'reopen-in-new-temp-container',
+                pageUrl: 'about:blank',
+              },
+              tabs[1]
+            )
+          );
+          const { color } = await browser.contextualIdentities.get(csid);
+          expect(color).not.to.equal('orange');
+          expect(color).not.to.equal(next);
+          next = color;
+        });
       });
     });
   });
