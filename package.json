@@ -6,7 +6,8 @@
   "scripts": {
     "test": "web-ext lint && web-ext run",
     "build": "web-ext build --overwrite-dest --ignore-files test",
-    "build:test": "web-ext build --overwrite-dest"
+    "build:test": "web-ext build --overwrite-dest",
+    "lint": "xo src/background.js"
   },
   "repository": {
     "type": "git",
@@ -19,10 +20,24 @@
   },
   "homepage": "https://github.com/ninevra/Simple-Temporary-Containers#readme",
   "devDependencies": {
-    "web-ext": "^6.0.0"
+    "web-ext": "^6.0.0",
+    "xo": "^0.38.2"
   },
   "webExt": {
     "sourceDir": "src",
     "artifactsDir": "bin"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "bracketSpacing": true
+  },
+  "xo": {
+    "envs": ["webextensions", "browser"],
+    "prettier": true,
+    "space": true,
+    "rules": {
+      "no-var": "off"
+    }
   }
 }
