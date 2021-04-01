@@ -343,21 +343,6 @@ async function isManagedContainer(container) {
   return false;
 }
 
-// QUESTION: Does endianness matter here? Can or should DataView be used
-// instead of Uint8Array?
-
-// Computes a hexadecimal string hash of the given string
-// Takes the first bytes of the sha1 digest
-// eslint-disable-next-line no-unused-vars
-async function truncatedHash(string, length) {
-  // QUESTION: Does endianness matter here? Can or should DataView be used
-  // instead of Uint8Array?
-  const buffer = utf8Encoder.encode(string);
-  const hashBuffer = await crypto.subtle.digest('SHA-1', buffer);
-  const bytes = new Uint8Array(hashBuffer).slice(0, length);
-  const hexBytes = [...bytes].map((i) => i.toString(16).padStart(2, '0'));
-  return hexBytes.join('');
-}
 // Other Utilities:
 
 async function hash(string, hashType) {
@@ -381,27 +366,6 @@ function toHexString(byteArray) {
 async function hashConcat(...strings) {
   const data = strings.map((s) => `${s.length.toString(16)}.${s}`).join('');
   return sha1(data);
-}
-
-// Returns an ArrayBuffer containing the concatenation of the data in the
-// provided ArrayBuffers.
-function concatBuffers(...buffers) {
-  const arrays = buffers.map((b) => Array.from(new Uint8Array(b)));
-  const concatArray = [].concat(...arrays);
-  return Uint8Array.from(concatArray).buffer;
-}
-
-// Returns a hash of the input strings, constructed by hashing the concatenation
-// of their hashes
-// eslint-disable-next-line no-unused-vars
-async function hashList(...strings) {
-  const buffers = strings.map((s) => utf8Encoder.encode(s));
-  const hashListBuffers = await Promise.all(
-    buffers.map((b) => crypto.subtle.digest('SHA-1', b))
-  );
-  const hashListBuffer = concatBuffers(...hashListBuffers);
-  const topHashBuffer = await crypto.subtle.digest('SHA-1', hashListBuffer);
-  return toHexString(new Uint8Array(topHashBuffer));
 }
 
 // Returns a container color, chosen at random, excluding the arguments
