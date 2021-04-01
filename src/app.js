@@ -4,7 +4,7 @@
 
 import { genName, isManagedContainer } from './container-util.js';
 import { tabColor, tabColors, nextTab, rightmostTab } from './tab-util.js';
-import { randomColor } from './util.js';
+import { randomColor, debug } from './util.js';
 
 export class App {
   constructor() {
@@ -13,8 +13,6 @@ export class App {
     this.containers = new Map();
     // A Map from tabIds to cookieStoreIds of all tabs managed by this extension
     this.tabs = new Map();
-    // Set true to enable more logging
-    this.debug = false;
 
     // Bind event handlers, so that their registration is checkable in the
     // integration tests:
@@ -117,7 +115,7 @@ export class App {
 
     // If a managed container's name has been changed by the user, unmanage it
     this.handleIdentityUpdated = async ({ contextualIdentity: container }) => {
-      if (this.debug) console.log('Continer updated', container);
+      debug.log('Continer updated', container);
       if (
         this.containers.has(container.cookieStoreId) &&
         !(await isManagedContainer(container))
@@ -191,7 +189,7 @@ export class App {
     const name = await genName(container);
     await browser.contextualIdentities.update(cookieStoreId, { name });
     this.addContainerToDb(container.cookieStoreId);
-    if (this.debug) console.log('created container', cookieStoreId);
+    debug.log('created container', cookieStoreId);
     return container;
   }
 
@@ -233,23 +231,20 @@ export class App {
       })
     );
     console.timeEnd('rebuildDatabase');
-    if (this.debug)
-      console.log('Rebuilt database is', this.containers, this.tabs);
+    debug.log('Rebuilt database is', this.containers, this.tabs);
   }
 
   // Records a tab in the extension state
   // TODO: handle case where tab is not in a known container
   addTabToDb(tab) {
-    if (this.debug)
-      console.log('Recording tab', tab.id, 'in container', tab.cookieStoreId);
+    debug.log('Recording tab', tab.id, 'in container', tab.cookieStoreId);
     this.tabs.set(tab.id, tab.cookieStoreId);
     this.containers.get(tab.cookieStoreId).add(tab.id);
   }
 
   // Records a container in the extension state
   addContainerToDb(cookieStoreId) {
-    if (this.debug)
-      console.log('Recording temporary container:', cookieStoreId);
+    debug.log('Recording temporary container:', cookieStoreId);
     // TODO: this check should always be true
     if (!this.containers.has(cookieStoreId)) {
       this.containers.set(cookieStoreId, new Set());
@@ -259,8 +254,7 @@ export class App {
   // Forgets a tab from the extension state
   // TODO: handle case where tab is not in a known container
   forgetTab(tabId, cookieStoreId) {
-    if (this.debug)
-      console.log('Forgetting tab', tabId, 'in container', cookieStoreId);
+    debug.log('Forgetting tab', tabId, 'in container', cookieStoreId);
     this.tabs.delete(tabId);
     this.containers.get(cookieStoreId).delete(tabId);
   }
@@ -272,12 +266,12 @@ export class App {
   }
 
   forgetContainer(cookieStoreId) {
-    if (this.debug) console.log('Forgetting container', cookieStoreId);
+    debug.log('Forgetting container', cookieStoreId);
     this.containers.delete(cookieStoreId);
   }
 
   async removeContainer(cookieStoreId) {
-    if (this.debug) console.log('Removing container', cookieStoreId);
+    debug.log('Removing container', cookieStoreId);
     await browser.contextualIdentities.remove(cookieStoreId);
   }
 

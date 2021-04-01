@@ -16,6 +16,16 @@ const colors = [
   'purple',
 ];
 
+// Set debug.debug to true to enable debug logging
+export const debug = {
+  debug: false,
+  log(...args) {
+    if (this.debug) {
+      console.log(...args);
+    }
+  },
+};
+
 async function hash(string, hashType) {
   const buffer = utf8Encoder.encode(string);
   const hashBuffer = await crypto.subtle.digest(hashType, buffer);
