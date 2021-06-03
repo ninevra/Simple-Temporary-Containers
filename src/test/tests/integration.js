@@ -230,14 +230,12 @@ describe('integration tests', () => {
     it('should record all open temporary containers & their tabs', async () => {
       // Create containers, tabs in a new window
       const windowId = (await browser.windows.create()).id;
-      const {
-        containers: temporaryCsIds,
-        tabs: temporaryTabIds,
-      } = await containersAndTabsCreated(async () => {
-        for (let i = 0; i < 4; i++) {
-          await app.handleBrowserAction(await browser.tabs.getCurrent());
-        }
-      });
+      const { containers: temporaryCsIds, tabs: temporaryTabIds } =
+        await containersAndTabsCreated(async () => {
+          for (let i = 0; i < 4; i++) {
+            await app.handleBrowserAction(await browser.tabs.getCurrent());
+          }
+        });
       const otherContainers = [];
       otherContainers.push(
         await browser.contextualIdentities.create({
