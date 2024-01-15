@@ -9,30 +9,25 @@ describe('integration tests', () => {
   const app = background.app;
 
   async function containersCreated(work) {
-    const before = new Set(
-      (await browser.contextualIdentities.query({})).map(
-        (cont) => cont.cookieStoreId
-      )
-    );
+    const identities = await browser.contextualIdentities.query({});
+    const before = new Set(identities.map((cont) => cont.cookieStoreId));
     await work();
     const after = await browser.contextualIdentities.query({});
     return after.filter((cont) => !before.has(cont.cookieStoreId));
   }
 
   async function containersAndTabsCreated(work) {
+    const previousContainers = await browser.contextualIdentities.query({});
     const previousCsIds = new Set(
-      (await browser.contextualIdentities.query({})).map(
-        (cont) => cont.cookieStoreId
-      )
+      previousContainers.map((cont) => cont.cookieStoreId)
     );
-    const previousTabIds = new Set(
-      (await browser.tabs.query({})).map((tab) => tab.id)
-    );
+    const previousTabs = await browser.tabs.query({});
+    const previousTabIds = new Set(previousTabs.map((tab) => tab.id));
     await work();
-    const postCsIds = (await browser.contextualIdentities.query({})).map(
-      (cont) => cont.cookieStoreId
-    );
-    const postTabIds = (await browser.tabs.query({})).map((tab) => tab.id);
+    const postContainers = await browser.contextualIdentities.query({});
+    const postCsIds = postContainers.map((cont) => cont.cookieStoreId);
+    const postTabs = await browser.tabs.query({});
+    const postTabIds = postTabs.map((tab) => tab.id);
     const newCsIds = postCsIds.filter((csid) => !previousCsIds.has(csid));
     const newTabIds = postTabIds.filter((id) => !previousTabIds.has(id));
     return {
@@ -189,14 +184,12 @@ describe('integration tests', () => {
   describe('temporary containers', () => {
     context('when empty', () => {
       it('should be removed', async () => {
-        const container = (
-          await containersCreated(async () =>
-            app.handleBrowserAction(await browser.tabs.getCurrent())
-          )
-        )[0];
-        const tab = (
-          await browser.tabs.query({ cookieStoreId: container.cookieStoreId })
-        )[0];
+        const [container] = await containersCreated(async () =>
+          app.handleBrowserAction(await browser.tabs.getCurrent())
+        );
+        const [tab] = await browser.tabs.query({
+          cookieStoreId: container.cookieStoreId,
+        });
         await browser.tabs.remove(tab.id);
         // TODO: is the onRemoved() handler guaranteed, or even expected, to be
         // called by now?
@@ -210,17 +203,15 @@ describe('integration tests', () => {
 
     context('when renamed', () => {
       it('should no longer be temporary', async () => {
-        const csid = (
-          await containersCreated(async () =>
-            app.handleBrowserAction(await browser.tabs.getCurrent())
-          )
-        )[0].cookieStoreId;
-        const tab = (await browser.tabs.query({ cookieStoreId: csid }))[0];
-        await browser.contextualIdentities.update(csid, {
+        const [{ cookieStoreId }] = await containersCreated(async () =>
+          app.handleBrowserAction(await browser.tabs.getCurrent())
+        );
+        const [tab] = await browser.tabs.query({ cookieStoreId });
+        await browser.contextualIdentities.update(cookieStoreId, {
           name: 'A Container',
         });
         await browser.tabs.remove(tab.id);
-        const container = await browser.contextualIdentities.get(csid);
+        const container = await browser.contextualIdentities.get(cookieStoreId);
         expect(container.name).to.equal('A Container');
       });
     });
@@ -229,7 +220,7 @@ describe('integration tests', () => {
   describe('rebuildDatabase()', () => {
     it('should record all open temporary containers & their tabs', async () => {
       // Create containers, tabs in a new window
-      const windowId = (await browser.windows.create()).id;
+      const { id: windowId } = await browser.windows.create();
       const { containers: temporaryCsIds, tabs: temporaryTabIds } =
         await containersAndTabsCreated(async () => {
           for (let i = 0; i < 4; i++) {
@@ -255,9 +246,10 @@ describe('integration tests', () => {
           cookieStoreId: otherContainers[0].cookieStoreId,
         })
       );
-      temporaryTabIds.push(
-        (await browser.tabs.create({ cookieStoreId: temporaryCsIds[1] })).id
-      );
+      const temporaryTab = await browser.tabs.create({
+        cookieStoreId: temporaryCsIds[1],
+      });
+      temporaryTabIds.push(temporaryTab.id);
       otherTabs.push(
         await browser.tabs.create({
           cookieStoreId: otherContainers[1].cookieStoreId,
@@ -292,7 +284,8 @@ describe('integration tests', () => {
     it('should remove empty temporary containers', async () => {
       const csids = await Promise.all(
         [0, 1, 2, 3].map(async () => {
-          return (await app.createContainer()).cookieStoreId;
+          const { cookieStoreId } = await app.createContainer();
+          return cookieStoreId;
         })
       );
       await browser.tabs.create({ cookieStoreId: csids[0] });

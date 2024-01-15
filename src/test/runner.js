@@ -5,8 +5,6 @@ mocha.checkLeaks();
 mocha.timeout(0);
 window.expect = chai.expect;
 
-(async () => {
-  await import('./tests/integration.js');
-  await import('./tests/unit.js');
-  mocha.run();
-})();
+await import('./tests/integration.js');
+await import('./tests/unit.js');
+mocha.run();

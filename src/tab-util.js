@@ -17,14 +17,15 @@ export async function tabColor(tab) {
 // Returns an array containing the container color names of every given tab that
 // has one
 export async function tabColors(...tabs) {
-  return (await Promise.all(tabs.map((tab) => tabColor(tab)))).filter((c) => c);
+  const colors = await Promise.all(tabs.map((tab) => tabColor(tab)));
+  return colors.filter(Boolean);
 }
 
 // Returns the tabs.Tab of the rightmost tab in the given window
 // TODO: can a window have 0 tabs?
 export async function rightmostTab(windowId) {
   const tabs = await browser.tabs.query({ windowId });
-  return tabs[tabs.length - 1];
+  return tabs.at(-1);
 }
 
 // Returns the tab following the given one, or undefined if there is none

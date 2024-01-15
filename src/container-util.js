@@ -20,18 +20,15 @@ export async function genName(container) {
 const managedContainerChecks = new Map();
 managedContainerChecks.set('0.1.0', async (container) => {
   const match = container.name.match(/^Temp ([a-f\d]{8})$/);
-  return (
-    match && match[1] === (await sha1(container.cookieStoreId)).slice(0, 8)
-  );
+  const hash = await sha1(container.cookieStoreId);
+  return match && match[1] === hash.slice(0, 8);
 });
 managedContainerChecks.set('0.2.0', async (container) => {
   const match = container.name.match(/^Temp ([a-f\d]{2})([a-f\d]{6}$)/);
   if (match) {
     const [, seed, hash] = match;
-    const expectation = (await hashConcat(seed, container.cookieStoreId)).slice(
-      0,
-      6
-    );
+    const fullExpectedHash = await hashConcat(seed, container.cookieStoreId);
+    const expectation = fullExpectedHash.slice(0, 6);
     if (hash === expectation) {
       return true;
     }
@@ -50,7 +47,7 @@ export async function isManagedContainer(container) {
     const checks = await Promise.all(
       [...managedContainerChecks.values()].map((check) => check(container))
     );
-    return checks.some((passed) => passed);
+    return checks.some(Boolean);
   }
 
   return false;
