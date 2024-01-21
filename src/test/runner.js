@@ -1,9 +1,8 @@
-export {}; // Ensure this is run as an ecmascript module
+import { expect } from './lib/chai/chai.js';
 
 mocha.setup('bdd');
 mocha.checkLeaks();
 mocha.timeout(0);
-window.expect = chai.expect;
 
 await import('./tests/integration.js');
 await import('./tests/unit.js');

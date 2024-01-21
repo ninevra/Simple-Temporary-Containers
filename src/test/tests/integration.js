@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-export {}; // Ensure this is run as an ecmascript module
+import { expect } from '/test/lib/chai/chai.js';
 
 describe('integration tests', () => {
   const background = browser.extension.getBackgroundPage();
