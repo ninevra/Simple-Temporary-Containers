@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { expect } from '/test/lib/chai/chai.js';
+import sinon from '/test/lib/sinon/sinon-esm.js';
 
 describe('integration tests', () => {
   const background = browser.extension.getBackgroundPage();
