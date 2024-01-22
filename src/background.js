@@ -3,13 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { genName, isManagedContainer } from './container-util.js';
-import {
-  tabColor,
-  tabColors,
-  nextTab,
-  rightmostTab,
-  secondRightmostTab,
-} from './tab-util.js';
+import { tabColor, tabColors, nextTab, rightmostTab } from './tab-util.js';
 import { randomColor, debug } from './util.js';
 
 // State
@@ -40,25 +34,24 @@ async function handleInstalled(details) {
 
 // Handles tabs being opened
 // If the tab belongs to a recorded container, then records the tab
-async function handleTabCreated(tab) {
+function handleTabCreated(tab) {
   const cookieStoreId = tab.cookieStoreId;
   if (containers.has(cookieStoreId)) {
     addTabToDb(tab);
-  } else if (cookieStoreId !== 'firefox-default') {
-    const container = await browser.contextualIdentities.get(cookieStoreId);
-    if (container.name === '%TEMP%') {
-      const name = await genName(container);
-      const previous = await secondRightmostTab(tab.windowId);
-      const denyList = previous ? [await tabColor(previous)] : [];
-      const color = randomColor(...denyList);
-      await browser.contextualIdentities.update(cookieStoreId, {
-        icon: 'circle',
-        name,
-        color,
-      });
-      addContainerToDb(cookieStoreId);
-      addTabToDb(tab);
-    }
+  }
+}
+
+async function handleContainerCreated({ contextualIdentity: container }) {
+  const { cookieStoreId } = container;
+  if (container.name === '%TEMP%') {
+    const name = await genName(container);
+    const color = randomColor();
+    await browser.contextualIdentities.update(cookieStoreId, {
+      icon: 'circle',
+      name,
+      color,
+    });
+    addContainerToDb(cookieStoreId);
   }
 }
 
@@ -149,6 +142,7 @@ async function handleIdentityUpdated({ contextualIdentity: container }) {
 browser.tabs.onRemoved.addListener(handleTabRemoved);
 browser.tabs.onCreated.addListener(handleTabCreated);
 browser.browserAction.onClicked.addListener(handleBrowserAction);
+browser.contextualIdentities.onCreated.addListener(handleContainerCreated);
 browser.contextualIdentities.onUpdated.addListener(handleIdentityUpdated);
 browser.runtime.onStartup.addListener(handleStartup);
 browser.runtime.onInstalled.addListener(handleInstalled);

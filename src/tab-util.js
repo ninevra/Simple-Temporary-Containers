@@ -28,12 +28,6 @@ export async function rightmostTab(windowId) {
   return tabs.at(-1);
 }
 
-// Returns the tabs.Tab of the leading to the rightmost tab in the given window
-export async function secondRightmostTab(windowId) {
-  const tabs = await browser.tabs.query({ windowId });
-  return tabs.at(-2);
-}
-
 // Returns the tab following the given one, or undefined if there is none
 export async function nextTab(tab) {
   const tabs = await browser.tabs.query({

@@ -5,20 +5,6 @@
 import { expect } from '/test/lib/chai/chai.js';
 import sinon from '/test/lib/sinon/sinon-esm.js';
 
-// Returns a Promise that resolves to the next change to the given cotnainer.
-function changed(cookieStoreId) {
-  return new Promise((resolve, _reject) => {
-    function listener({ contextualIdentity }) {
-      if (contextualIdentity.cookieStoreId === cookieStoreId) {
-        browser.contextualIdentities.onUpdated.removeListener(listener);
-        resolve(contextualIdentity);
-      }
-    }
-
-    browser.contextualIdentities.onUpdated.addListener(listener);
-  });
-}
-
 describe('integration tests', () => {
   const background = browser.extension.getBackgroundPage();
   const app = background.stateForTests;
@@ -239,11 +225,37 @@ describe('integration tests', () => {
         color: 'blue',
         icon: 'fence',
       });
-      const tab = await browser.tabs.create({ cookieStoreId });
-      const { name, icon } = await changed(cookieStoreId);
+      // Watches the given container until the predicate is or becomes true,
+      // then resolves to the container.
+      function until(cookieStoreId, predicate) {
+        // Don't see how to better implement this.
+        // eslint-disable-next-line no-async-promise-executor
+        return new Promise(async (resolve, _reject) => {
+          function listener({ contextualIdentity: container }) {
+            if (predicate(container)) {
+              browser.contextualIdentities.onUpdated.removeListener(listener);
+              resolve(container);
+            }
+          }
+
+          browser.contextualIdentities.onUpdated.addListener(listener);
+          const postContainer =
+            await browser.contextualIdentities.get(cookieStoreId);
+          if (predicate(postContainer)) {
+            browser.contextualIdentities.onUpdated.removeListener(listener);
+            resolve(postContainer);
+          }
+        });
+      }
+
+      const { name, icon } = await until(
+        cookieStoreId,
+        ({ name }) => name !== '%TEMP%'
+      );
       expect(name).to.be.a('string');
       expect(name).not.to.equal('%TEMP%');
       expect(icon).to.equal('circle');
+      const tab = await browser.tabs.create({ cookieStoreId });
       await browser.tabs.remove(tab.id);
       await invertP(browser.contextualIdentities.get(cookieStoreId));
     });
