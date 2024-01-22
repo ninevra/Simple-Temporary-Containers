@@ -7,7 +7,7 @@ import sinon from '/test/lib/sinon/sinon-esm.js';
 
 // Returns a Promise that resolves to the next change to the given cotnainer.
 function changed(cookieStoreId) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     function listener({ contextualIdentity }) {
       if (contextualIdentity.cookieStoreId === cookieStoreId) {
         browser.contextualIdentities.onUpdated.removeListener(listener);
