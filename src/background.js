@@ -36,6 +36,41 @@ async function handleInstalled(details) {
     // Run tests
     await browser.tabs.create({ url: '/test/test.html' });
   }
+
+  browser.menus.create(
+    {
+      contexts: ['link'],
+      id: 'new-temp-container-tab',
+      title: 'Open Link in New Te&mp Container Tab',
+      // Prevents menu item on e.g. javascript://
+      // TODO: somewhat overzealous
+      documentUrlPatterns: ['<all_urls>'],
+    },
+    () => {
+      if (browser.runtime.lastError) {
+        console.error(
+          'Error encountered while creating link context menu item',
+          browser.runtime.lastError
+        );
+      }
+    }
+  );
+  browser.menus.create(
+    {
+      contexts: ['tab'],
+      id: 'reopen-in-new-temp-container',
+      title: 'Reopen in New &Temp Container',
+      documentUrlPatterns: ['<all_urls>'],
+    },
+    () => {
+      if (browser.runtime.lastError) {
+        console.error(
+          'Error encountered while creating tab context menu item',
+          browser.runtime.lastError
+        );
+      }
+    }
+  );
 }
 
 // Handles tabs being opened
@@ -144,50 +179,12 @@ async function handleIdentityUpdated({ contextualIdentity: container }) {
   }
 }
 
-// Setup & Register Event Handlers:
-
 browser.tabs.onRemoved.addListener(handleTabRemoved);
 browser.tabs.onCreated.addListener(handleTabCreated);
 browser.browserAction.onClicked.addListener(handleBrowserAction);
 browser.contextualIdentities.onUpdated.addListener(handleIdentityUpdated);
 browser.runtime.onStartup.addListener(handleStartup);
 browser.runtime.onInstalled.addListener(handleInstalled);
-
-browser.menus.create(
-  {
-    contexts: ['link'],
-    id: 'new-temp-container-tab',
-    title: 'Open Link in New Te&mp Container Tab',
-    // Prevents menu item on e.g. javascript://
-    // TODO: somewhat overzealous
-    documentUrlPatterns: ['<all_urls>'],
-  },
-  () => {
-    if (browser.runtime.lastError) {
-      console.error(
-        'Error encountered while creating link context menu item',
-        browser.runtime.lastError
-      );
-    }
-  }
-);
-browser.menus.create(
-  {
-    contexts: ['tab'],
-    id: 'reopen-in-new-temp-container',
-    title: 'Reopen in New &Temp Container',
-    documentUrlPatterns: ['<all_urls>'],
-  },
-  () => {
-    if (browser.runtime.lastError) {
-      console.error(
-        'Error encountered while creating tab context menu item',
-        browser.runtime.lastError
-      );
-    }
-  }
-);
-
 browser.menus.onClicked.addListener(handleMenuItem);
 
 // State Operations:
