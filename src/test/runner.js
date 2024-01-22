@@ -1,5 +1,3 @@
-import { expect } from './lib/chai/chai.js';
-
 mocha.setup('bdd');
 mocha.checkLeaks();
 mocha.timeout(0);
