@@ -40,7 +40,8 @@
     "prettier": true,
     "space": true,
     "rules": {
-      "no-var": "off"
+      "no-var": "off",
+      "no-absolute-path": "off"
     },
     "overrides": [
       {

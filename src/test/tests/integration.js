@@ -5,6 +5,20 @@
 import { expect } from '/test/lib/chai/chai.js';
 import sinon from '/test/lib/sinon/sinon-esm.js';
 
+// Returns a Promise that resolves to the next change to the given cotnainer.
+function changed(cookieStoreId) {
+  return new Promise((resolve, reject) => {
+    function listener({ contextualIdentity }) {
+      if (contextualIdentity.cookieStoreId === cookieStoreId) {
+        browser.contextualIdentities.onUpdated.removeListener(listener);
+        resolve(contextualIdentity);
+      }
+    }
+
+    browser.contextualIdentities.onUpdated.addListener(listener);
+  });
+}
+
 describe('integration tests', () => {
   const background = browser.extension.getBackgroundPage();
   const app = background.app;
@@ -215,6 +229,23 @@ describe('integration tests', () => {
         const container = await browser.contextualIdentities.get(cookieStoreId);
         expect(container.name).to.equal('A Container');
       });
+    });
+  });
+
+  describe('%TEMP% container', () => {
+    it('should become a new temporary container when a tab is opened', async () => {
+      const { cookieStoreId } = await browser.contextualIdentities.create({
+        name: '%TEMP%',
+        color: 'blue',
+        icon: 'fence',
+      });
+      const tab = await browser.tabs.create({ cookieStoreId });
+      const { name, icon } = await changed(cookieStoreId);
+      expect(name).to.be.a('string');
+      expect(name).not.to.equal('%TEMP%');
+      expect(icon).to.equal('circle');
+      await browser.tabs.remove(tab.id);
+      await invertP(browser.contextualIdentities.get(cookieStoreId));
     });
   });
 
