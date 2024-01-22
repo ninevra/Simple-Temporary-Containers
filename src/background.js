@@ -23,23 +23,23 @@ const tabs = new Map();
 
 // Handles browser starting with the extension installed
 // TODO: verify this is called correctly
-const handleStartup = () => {
+function handleStartup() {
   rebuildDatabase();
-};
+}
 
 // Handles extension being installed, reinstalled, or updated
-const handleInstalled = async (details) => {
+async function handleInstalled(details) {
   // QUESTION: if this is an update, does the data still exist?
   await rebuildDatabase();
   if (details.temporary) {
     // Run tests
     await browser.tabs.create({ url: '/test/test.html' });
   }
-};
+}
 
 // Handles tabs being opened
 // If the tab belongs to a recorded container, then records the tab
-const handleTabCreated = async (tab) => {
+async function handleTabCreated(tab) {
   const cookieStoreId = tab.cookieStoreId;
   if (containers.has(cookieStoreId)) {
     addTabToDb(tab);
@@ -59,12 +59,12 @@ const handleTabCreated = async (tab) => {
       addTabToDb(tab);
     }
   }
-};
+}
 
 // Handles tabs being closed
 // If the tab was recorded, then forget it
 // If the tab's container is now empty, then forget and destroy it
-const handleTabRemoved = async (tabId, _removeInfo) => {
+async function handleTabRemoved(tabId, _removeInfo) {
   // TODO: handle unexpected cases where container not recorded or doesn't
   // record the tab
   if (tabs.has(tabId)) {
@@ -74,11 +74,11 @@ const handleTabRemoved = async (tabId, _removeInfo) => {
       await forgetAndRemoveContainer(cookieStoreId);
     }
   }
-};
+}
 
 // Handles the browserAction being clicked
 // Create a new container and an empty tab in that container
-const handleBrowserAction = async (activeTab) => {
+async function handleBrowserAction(activeTab) {
   // Tab will be created at end of window. banned colors: last tab in
   // window, current active tab
   const denyList = await tabColors(
@@ -89,11 +89,11 @@ const handleBrowserAction = async (activeTab) => {
   await browser.tabs.create({
     cookieStoreId: container.cookieStoreId,
   });
-};
+}
 
 // Handles the menu item being clicked
 // Open a new container and a new tab with the given link
-const handleMenuItem = async (info, tab) => {
+async function handleMenuItem(info, tab) {
   // IDEA: Handle srcUrls as well? would require registering the 'image' context
   // QUESTION: Can tab parameter ever be missing in the registered contexts??
   if (info.menuItemId === 'new-temp-container-tab') {
@@ -130,10 +130,10 @@ const handleMenuItem = async (info, tab) => {
       active: tab.active,
     });
   }
-};
+}
 
 // If a managed container's name has been changed by the user, unmanage it
-const handleIdentityUpdated = async ({ contextualIdentity: container }) => {
+async function handleIdentityUpdated({ contextualIdentity: container }) {
   debug.log('Continer updated', container);
   if (
     containers.has(container.cookieStoreId) &&
@@ -141,7 +141,7 @@ const handleIdentityUpdated = async ({ contextualIdentity: container }) => {
   ) {
     forgetContainer(container.cookieStoreId);
   }
-};
+}
 
 // Setup & Register Event Handlers:
 
