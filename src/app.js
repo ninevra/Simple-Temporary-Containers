@@ -3,7 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { genName, isManagedContainer } from './container-util.js';
-import { tabColor, tabColors, nextTab, rightmostTab, secondRightmostTab } from './tab-util.js';
+import {
+  tabColor,
+  tabColors,
+  nextTab,
+  rightmostTab,
+  secondRightmostTab,
+} from './tab-util.js';
 import { randomColor, debug } from './util.js';
 
 export class App {
@@ -39,14 +45,18 @@ export class App {
       const cookieStoreId = tab.cookieStoreId;
       if (this.containers.has(cookieStoreId)) {
         this.addTabToDb(tab);
-      } else if (cookieStoreId !== "firefox-default") {
-        let container = await browser.contextualIdentities.get(cookieStoreId);
-        if (container.name === "%TEMP%") {
+      } else if (cookieStoreId !== 'firefox-default') {
+        const container = await browser.contextualIdentities.get(cookieStoreId);
+        if (container.name === '%TEMP%') {
           const name = await genName(container);
-          const prev = await secondRightmostTab(tab.windowId);
-          const denyList = prev ? [await tabColor(prev)] : [];
+          const previous = await secondRightmostTab(tab.windowId);
+          const denyList = previous ? [await tabColor(previous)] : [];
           const color = randomColor(...denyList);
-          await browser.contextualIdentities.update(cookieStoreId, { icon: "circle", name, color });
+          await browser.contextualIdentities.update(cookieStoreId, {
+            icon: 'circle',
+            name,
+            color,
+          });
           this.addContainerToDb(cookieStoreId);
           this.addTabToDb(tab);
         }
