@@ -12,14 +12,15 @@ import {
 } from './tab-util.js';
 import { randomColor, debug } from './util.js';
 
+// State
+
 // A Map whose keys are the cookieStoreIds of all containers managed here
 // and whose values are Sets of all tabIds open in the container
 const containers = new Map();
 // A Map from tabIds to cookieStoreIds of all tabs managed by this extension
 const tabs = new Map();
 
-// Bind event handlers, so that their registration is checkable in the
-// integration tests:
+// Event handlers
 
 // Handles browser starting with the extension installed
 // TODO: verify this is called correctly
