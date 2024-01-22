@@ -21,7 +21,7 @@ function changed(cookieStoreId) {
 
 describe('integration tests', () => {
   const background = browser.extension.getBackgroundPage();
-  const app = background.app;
+  const app = background.stateForTests;
 
   async function containersCreated(work) {
     const identities = await browser.contextualIdentities.query({});
