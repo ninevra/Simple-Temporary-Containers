@@ -228,24 +228,21 @@ describe('integration tests', () => {
       // Watches the given container until the predicate is or becomes true,
       // then resolves to the container.
       function until(cookieStoreId, predicate) {
-        // Don't see how to better implement this.
-        // eslint-disable-next-line no-async-promise-executor
-        return new Promise(async (resolve, _reject) => {
-          function listener({ contextualIdentity: container }) {
-            if (predicate(container)) {
-              browser.contextualIdentities.onUpdated.removeListener(listener);
-              resolve(container);
-            }
+        const { promise, resolve } = Promise.withResolvers();
+        function listener({ contextualIdentity: container }) {
+          if (predicate(container)) {
+            browser.contextualIdentities.onUpdated.removeListener(listener);
+            resolve(container);
           }
-
-          browser.contextualIdentities.onUpdated.addListener(listener);
-          const postContainer =
-            await browser.contextualIdentities.get(cookieStoreId);
-          if (predicate(postContainer)) {
+        }
+        browser.contextualIdentities.onUpdated.addListener(listener);
+        browser.contextualIdentities.get(cookieStoreId).then((container) => {
+          if (predicate(container)) {
             browser.contextualIdentities.onUpdated.removeListener(listener);
             resolve(container);
           }
         });
+        return promise;
       }
 
       const { name, icon } = await until(
