@@ -11,26 +11,10 @@ import {
 import { tabColor, tabColors, nextTab, rightmostTab } from './tab-util.js';
 import { randomColor, debug } from './util.js';
 
-// State
-
-// A Map whose keys are the cookieStoreIds of all containers managed here
-// and whose values are Sets of all tabIds open in the container
-const containers = new Map();
-// A Map from tabIds to cookieStoreIds of all tabs managed by this extension
-const tabs = new Map();
-
 // Event handlers
-
-// Handles browser starting with the extension installed
-// TODO: verify this is called correctly
-async function handleStartup() {
-  await rebuildDatabase();
-}
 
 // Handles extension being installed, reinstalled, or updated
 async function handleInstalled(details) {
-  // QUESTION: if this is an update, does the data still exist?
-  await rebuildDatabase();
   if (details.temporary) {
     // Run tests
     await browser.tabs.create({ url: '/test/test.html' });
@@ -38,16 +22,11 @@ async function handleInstalled(details) {
 }
 
 // Handles tabs being opened
-// If the tab belongs to a recorded container, then records the tab
 async function handleTabCreated(tab) {
   const { cookieStoreId } = tab;
-  if (containers.has(cookieStoreId)) {
-    addTabToDb(tab);
-  } else if (cookieStoreId !== 'firefox-default') {
+  if (cookieStoreId !== 'firefox-default') {
     const container = await browser.contextualIdentities.get(cookieStoreId);
     if (isMarkedContainer(container)) {
-      addContainerToDb(cookieStoreId);
-      addTabToDb(tab);
       await makeContainerTemporary(container);
     }
   }
@@ -55,23 +34,7 @@ async function handleTabCreated(tab) {
 
 async function handleContainerCreated({ contextualIdentity: container }) {
   if (isMarkedContainer(container)) {
-    addContainerToDb(container.cookieStoreId);
     await makeContainerTemporary(container);
-  }
-}
-
-// Handles tabs being closed
-// If the tab was recorded, then forget it
-// If the tab's container is now empty, then forget and destroy it
-async function handleTabRemoved(tabId, _removeInfo) {
-  // TODO: handle unexpected cases where container not recorded or doesn't
-  // record the tab
-  if (tabs.has(tabId)) {
-    const cookieStoreId = tabs.get(tabId);
-    forgetTab(tabId, cookieStoreId);
-    if (isEmptyContainer(cookieStoreId)) {
-      await forgetAndRemoveContainer(cookieStoreId);
-    }
   }
 }
 
@@ -131,25 +94,13 @@ async function handleMenuItem(info, tab) {
   }
 }
 
-// If a managed container's name has been changed by the user, unmanage it
-async function handleIdentityUpdated({ contextualIdentity: container }) {
-  debug.log('Continer updated', container);
-  if (
-    containers.has(container.cookieStoreId) &&
-    !(await isManagedContainer(container))
-  ) {
-    forgetContainer(container.cookieStoreId);
-  }
-}
-
 // Setup & Register Event Handlers:
 
-browser.tabs.onRemoved.addListener(handleTabRemoved);
+browser.tabs.onRemoved.addListener(removeEmptyTemporaryContainers);
 browser.tabs.onCreated.addListener(handleTabCreated);
 browser.browserAction.onClicked.addListener(handleBrowserAction);
 browser.contextualIdentities.onCreated.addListener(handleContainerCreated);
-browser.contextualIdentities.onUpdated.addListener(handleIdentityUpdated);
-browser.runtime.onStartup.addListener(handleStartup);
+browser.runtime.onStartup.addListener(removeEmptyTemporaryContainers);
 browser.runtime.onInstalled.addListener(handleInstalled);
 
 browser.menus.create(
@@ -202,112 +153,38 @@ async function createContainer(denyList = []) {
   const cookieStoreId = container.cookieStoreId;
   const name = await genName(container);
   await browser.contextualIdentities.update(cookieStoreId, { name });
-  addContainerToDb(container.cookieStoreId);
   debug.log('created container', cookieStoreId);
   return container;
 }
 
 // Iterates through all containers and tabs to rebuild extension state
-async function rebuildDatabase() {
-  console.time('rebuildDatabase');
-  // TODO: if this takes awhile, the results could be inconsistent, because a
-  // tab could be removed before it is registered.  Unfortunately,
-  // tabs.onRemoved() can be a tab's first lifecycle event, as when the
-  // extension is reloaded or the browser restarted with a managed tab already
-  // open.
-  // Wipe previous data // QUESTION: can there ever be any?
-  containers.clear();
-  tabs.clear();
+async function removeEmptyTemporaryContainers(removedTabId) {
+  console.time('removeEmptyTempContainers');
   // Check all extant containers
-  const [allContainers, allTabs] = await Promise.all([
-    browser.contextualIdentities.query({}),
-    browser.tabs.query({}),
-  ]);
+  const allContainers = await browser.contextualIdentities.query({});
   await Promise.all(
     allContainers.map(async (container) => {
-      const { cookieStoreId } = container;
-      if (isMarkedContainer(container)) {
-        addContainerToDb(cookieStoreId);
-        await makeContainerTemporary(container);
-      } else if (await isManagedContainer(container)) {
-        addContainerToDb(cookieStoreId);
+      if (
+        isMarkedContainer(container) ||
+        (await isManagedContainer(container))
+      ) {
+        const { cookieStoreId } = container;
+        const tabs = await browser.tabs.query({ cookieStoreId });
+        const stillOpenTabs = tabs.filter(({ id }) => id !== removedTabId);
+        if (stillOpenTabs.length === 0) {
+          await browser.contextualIdentities.remove(cookieStoreId);
+        }
       }
     })
   );
-  for (const tab of allTabs) {
-    if (containers.has(tab.cookieStoreId)) {
-      addTabToDb(tab);
-    }
-  }
-
-  await Promise.all(
-    [...containers.keys()].map(async (cookieStoreId) => {
-      if (isEmptyContainer(cookieStoreId)) {
-        await forgetAndRemoveContainer(cookieStoreId);
-      }
-    })
-  );
-  console.timeEnd('rebuildDatabase');
-  debug.log('Rebuilt database is', containers, tabs);
-}
-
-// Records a tab in the extension state
-// TODO: handle case where tab is not in a known container
-function addTabToDb(tab) {
-  debug.log('Recording tab', tab.id, 'in container', tab.cookieStoreId);
-  tabs.set(tab.id, tab.cookieStoreId);
-  containers.get(tab.cookieStoreId).add(tab.id);
-}
-
-// Records a container in the extension state
-function addContainerToDb(cookieStoreId) {
-  debug.log('Recording temporary container:', cookieStoreId);
-  // TODO: this check should always be true
-  if (!containers.has(cookieStoreId)) {
-    containers.set(cookieStoreId, new Set());
-  }
-}
-
-// Forgets a tab from the extension state
-// TODO: handle case where tab is not in a known container
-function forgetTab(tabId, cookieStoreId) {
-  debug.log('Forgetting tab', tabId, 'in container', cookieStoreId);
-  tabs.delete(tabId);
-  containers.get(cookieStoreId).delete(tabId);
-}
-
-// Checks whether a container is believed to be empty
-function isEmptyContainer(cookieStoreId) {
-  const containerTabs = containers.get(cookieStoreId);
-  return containerTabs.size === 0;
-}
-
-function forgetContainer(cookieStoreId) {
-  debug.log('Forgetting container', cookieStoreId);
-  containers.delete(cookieStoreId);
-}
-
-async function removeContainer(cookieStoreId) {
-  debug.log('Removing container', cookieStoreId);
-  await browser.contextualIdentities.remove(cookieStoreId);
-}
-
-// Forgets a container from the extension state and destroys it
-async function forgetAndRemoveContainer(cookieStoreId) {
-  forgetContainer(cookieStoreId);
-  await removeContainer(cookieStoreId);
-  // QUESTION: An "Error: Invalid tab ID" is always logged after this, with
-  // the ID of the last tab removed. Is this a problem? Is it avoidable?
+  console.timeEnd('removeEmptyTempContainers');
 }
 
 // Expose state to the integration tests
 window.stateForTests = {
-  containers,
-  tabs,
-  rebuildDatabase,
+  removeEmptyTemporaryContainers,
   handleBrowserAction,
   handleMenuItem,
   createContainer,
   handleInstalled,
-  handleStartup,
 };
