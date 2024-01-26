@@ -5,6 +5,53 @@
 import { expect } from '/test/lib/chai/chai.js';
 import sinon from '/test/lib/sinon/sinon-esm.js';
 
+// Returns an AsyncIterable of the events on the given event source.
+// Registers to listen immediately, so no events are lost.
+// Unregisters when the AsyncIterable is terminated (e.g. by exiting
+// a `for await...of` loop or calling `.return()`)
+function events({ addListener, removeListener }) {
+  let pcap;
+  let buffer = [];
+  function listener(event) {
+    if (pcap) {
+      pcap.resolve(event);
+      pcap = undefined;
+    } else {
+      buffer.push(events);
+    }
+  }
+
+  const generator = (async function* () {
+    try {
+      addListener(listener);
+      yield;
+      while (true) {
+        yield* buffer;
+        buffer = [];
+        /* eslint-disable-next-line no-use-extend-native/no-use-extend-native --
+         * Promise.withResolvers() exists in the browser but not in Node.js
+         */
+        pcap = Promise.withResolvers();
+        yield pcap.promise;
+      }
+    } finally {
+      removeListener(listener);
+    }
+  })();
+  generator.next();
+  return generator;
+}
+
+// Traverses the async iterable until the first item matching the predicate,
+// terminates the async iterable, and returns that item.
+async function until(asyncIterable, predicate) {
+  for await (const item of asyncIterable) {
+    if (predicate) {
+      return item;
+    }
+  }
+}
+
 describe('integration tests', () => {
   const background = browser.extension.getBackgroundPage();
   const app = background.stateForTests;
@@ -188,16 +235,16 @@ describe('integration tests', () => {
         const [container] = await containersCreated(async () =>
           app.handleBrowserAction(await browser.tabs.getCurrent())
         );
+        const { cookieStoreId } = container;
         const [tab] = await browser.tabs.query({
-          cookieStoreId: container.cookieStoreId,
+          cookieStoreId,
         });
+        const removals = events(browser.contextualIdentities.onRemoved);
         await browser.tabs.remove(tab.id);
-        // TODO: is the onRemoved() handler guaranteed, or even expected, to be
-        // called by now?
-        // TODO: This is a hack, should eventually bundle chai-as-promised and use
-        // .to.be.rejected instead
-        await invertP(
-          browser.contextualIdentities.get(container.cookieStoreId)
+        await until(
+          removals,
+          ({ contextualIdentity: removed }) =>
+            removed.cookieStoreId === cookieStoreId
         );
       });
     });
@@ -220,41 +267,30 @@ describe('integration tests', () => {
 
   describe('%TEMP% container', () => {
     it('should become a new temporary container when a tab is opened', async () => {
+      const updates = events(browser.contextualIdentities.onUpdated);
       const { cookieStoreId } = await browser.contextualIdentities.create({
         name: '%TEMP%',
         color: 'blue',
         icon: 'fence',
       });
-      // Watches the given container until the predicate is or becomes true,
-      // then resolves to the container.
-      function until(cookieStoreId, predicate) {
-        const { promise, resolve } = Promise.withResolvers();
-        function listener({ contextualIdentity: container }) {
-          if (predicate(container)) {
-            browser.contextualIdentities.onUpdated.removeListener(listener);
-            resolve(container);
-          }
-        }
-        browser.contextualIdentities.onUpdated.addListener(listener);
-        browser.contextualIdentities.get(cookieStoreId).then((container) => {
-          if (predicate(container)) {
-            browser.contextualIdentities.onUpdated.removeListener(listener);
-            resolve(container);
-          }
-        });
-        return promise;
-      }
-
-      const { name, icon } = await until(
-        cookieStoreId,
-        ({ name }) => name !== '%TEMP%'
+      const {
+        contextualIdentity: { name, icon },
+      } = await until(
+        updates,
+        ({ contextualIdentity: updated }) =>
+          updated.cookieStoreId === cookieStoreId
       );
       expect(name).to.be.a('string');
       expect(name).not.to.equal('%TEMP%');
       expect(icon).to.equal('circle');
       const tab = await browser.tabs.create({ cookieStoreId });
+      const removals = events(browser.contextualIdentities.onRemoved);
       await browser.tabs.remove(tab.id);
-      await invertP(browser.contextualIdentities.get(cookieStoreId));
+      await until(
+        removals,
+        ({ contextualIdentity: removed }) =>
+          removed.cookieStoreId === cookieStoreId
+      );
     });
   });
 
