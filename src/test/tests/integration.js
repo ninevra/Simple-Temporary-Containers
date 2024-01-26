@@ -243,7 +243,7 @@ describe('integration tests', () => {
             await browser.contextualIdentities.get(cookieStoreId);
           if (predicate(postContainer)) {
             browser.contextualIdentities.onUpdated.removeListener(listener);
-            resolve(postContainer);
+            resolve(container);
           }
         });
       }
