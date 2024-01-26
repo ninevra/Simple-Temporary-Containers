@@ -160,21 +160,32 @@ async function createContainer(denyList = []) {
 // Iterates through all containers and tabs to rebuild extension state
 async function removeEmptyTemporaryContainers(removedTabId) {
   console.time('removeEmptyTempContainers');
-  // Check all extant containers
+  // Retrieve containers before tabs
+  // Therefore containers added after tabs are queried are preserved
   const allContainers = await browser.contextualIdentities.query({});
+  const managedState = await Promise.all(
+    allContainers.map(async (container) => [
+      container,
+      isMarkedContainer(container) || (await isManagedContainer(container)),
+    ])
+  );
+  const managedContainers = managedState
+    .filter(([, isManaged]) => isManaged)
+    .map(([container]) => container);
+  // Query tabs
+  // This may be inconsistent; recently removed tabs sometimes persist
+  const allTabs = await browser.tabs.query({});
+  const realTabs = allTabs.filter(({ id }) => id !== removedTabId);
+  // Synchronously find the empty containers
+  const nonEmptyContainers = new Set(realTabs.map((tab) => tab.cookieStoreId));
+  const emptyContainers = managedContainers.filter(
+    ({ cookieStoreId }) => !nonEmptyContainers.has(cookieStoreId)
+  );
   await Promise.all(
-    allContainers.map(async (container) => {
-      if (
-        isMarkedContainer(container) ||
-        (await isManagedContainer(container))
-      ) {
-        const { cookieStoreId } = container;
-        const tabs = await browser.tabs.query({ cookieStoreId });
-        const stillOpenTabs = tabs.filter(({ id }) => id !== removedTabId);
-        if (stillOpenTabs.length === 0) {
-          await browser.contextualIdentities.remove(cookieStoreId);
-        }
-      }
+    emptyContainers.map(async (container) => {
+      // TODO hopefully we've been sync since browser.tabs.query()? but it's
+      // likely possible for there to be new tabs not reflected in the query().
+      await browser.contextualIdentities.remove(container.cookieStoreId);
     })
   );
   console.timeEnd('removeEmptyTempContainers');
