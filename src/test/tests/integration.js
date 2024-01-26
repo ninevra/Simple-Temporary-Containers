@@ -263,6 +263,35 @@ describe('integration tests', () => {
         expect(container.name).to.equal('A Container');
       });
     });
+
+    context('in large quantities', () => {
+      it('should clean up tolerably quickly', async () => {
+        const { containers, tabs } = await containersAndTabsCreated(
+          async () => {
+            const current = await browser.tabs.getCurrent();
+            await Promise.all(
+              Array.from({ length: 750 }).map(() =>
+                app.handleBrowserAction(current)
+              )
+            );
+          }
+        );
+        const removals = events(browser.contextualIdentities.onRemoved);
+        const remaining = new Set(containers);
+        console.time('large test');
+        await Promise.all(tabs.map((id) => browser.tabs.remove(id)));
+        for await (const {
+          contextualIdentity: { cookieStoreId: removed },
+        } of removals) {
+          remaining.delete(removed);
+          if (remaining.size === 0) {
+            break;
+          }
+        }
+
+        console.timeEnd('large test');
+      });
+    });
   });
 
   describe('%TEMP% container', () => {
