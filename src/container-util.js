@@ -53,7 +53,7 @@ export async function isManagedContainer(container) {
   return false;
 }
 
-export const CONTAINER_MARK = '%TEMP%';
+export const CONTAINER_MARK = '%NEW_TEMP_CONTAINER%';
 
 // Determines whether a container is marked for intake and should be turned
 // into a temporary container.
