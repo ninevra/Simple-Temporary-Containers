@@ -5,41 +5,52 @@
 import { expect } from '/test/lib/chai/chai.js';
 import sinon from '/test/lib/sinon/sinon-esm.js';
 
+// If the given promise resolves, the returned promise rejects. If the passed
+// promise rejects, the returned promise resolves with the rejected value.
+async function expectToReject(promise) {
+  let value;
+  try {
+    value = await promise;
+    throw new Error('Expected promise to reject, but it resolved.', {
+      cause: value,
+    });
+  } catch {
+    return value;
+  }
+}
+
 // Returns an AsyncIterable of the events on the given event source.
 // Registers to listen immediately, so no events are lost.
 // Unregisters when the AsyncIterable is terminated (e.g. by exiting
 // a `for await...of` loop or calling `.return()`)
 function events({ addListener, removeListener }) {
-  let pcap;
+  let promise, resolve;
   let buffer = [];
   function listener(event) {
-    if (pcap) {
-      pcap.resolve(event);
-      pcap = undefined;
+    if (promise) {
+      resolve(event);
+      promise = undefined;
     } else {
       buffer.push(events);
     }
   }
-
-  const generator = (async function* () {
+  addListener(listener);
+  async function* eventIterator() {
     try {
-      addListener(listener);
-      yield;
       while (true) {
         yield* buffer;
         buffer = [];
         /* eslint-disable-next-line no-use-extend-native/no-use-extend-native --
          * Promise.withResolvers() exists in the browser but not in Node.js
          */
-        pcap = Promise.withResolvers();
-        yield pcap.promise;
+        ({promise, resolve} = Promise.withResolvers());
+        yield promise;
       }
     } finally {
       removeListener(listener);
     }
-  })();
-  generator.next();
-  return generator;
+  }
+  return eventIterator();
 }
 
 // Traverses the async iterable until the first item matching the predicate,
@@ -168,14 +179,11 @@ describe('integration tests', () => {
           await app.handleMenuItem({
             menuItemId: 'new-temp-container-tab', // TODO: assert other ids are ignored
             linkUrl: 'about:blank',
-            // TODO: test with and without a tab (.index)
           });
         });
         expect(diff).to.have.lengthOf(1);
-        const container = diff[0];
-        const tabs = await browser.tabs.query({
-          cookieStoreId: container.cookieStoreId,
-        });
+        const [{ cookieStoreId }] = diff;
+        const tabs = await browser.tabs.query({ cookieStoreId });
         expect(tabs).to.have.lengthOf(1);
         // TODO: can't check if tab has correct url without "tabs" permission
       });
@@ -196,9 +204,8 @@ describe('integration tests', () => {
           );
         });
         expect(diff).to.have.lengthOf(1);
-        const tabs = await browser.tabs.query({
-          cookieStoreId: diff[0].cookieStoreId,
-        });
+        const [{ cookieStoreId }] = diff;
+        const tabs = await browser.tabs.query({ cookieStoreId });
         expect(tabs).to.have.lengthOf(1);
         const tab = tabs[0];
         leftTab = await browser.tabs.get(leftTab.id);
@@ -217,18 +224,6 @@ describe('integration tests', () => {
     it('should create one container when key-command is entered');
   });
 
-  // If the passed promise resolves, the returned promise rejects with the
-  // resolved value.  If the passed promise rejects, the returned promise
-  // resolves with the rejected value.
-  function invertP(promise) {
-    return promise.then(
-      (value) => {
-        throw value;
-      },
-      (error) => error
-    );
-  }
-
   describe('temporary containers', () => {
     context('when empty', () => {
       it('should be removed', async () => {
@@ -236,9 +231,7 @@ describe('integration tests', () => {
           app.handleBrowserAction(await browser.tabs.getCurrent())
         );
         const { cookieStoreId } = container;
-        const [tab] = await browser.tabs.query({
-          cookieStoreId,
-        });
+        const [tab] = await browser.tabs.query({ cookieStoreId });
         const removals = events(browser.contextualIdentities.onRemoved);
         await browser.tabs.remove(tab.id);
         await until(
@@ -259,6 +252,7 @@ describe('integration tests', () => {
           name: 'A Container',
         });
         await browser.tabs.remove(tab.id);
+        // TODO wait for handlers to run somehow?
         const container = await browser.contextualIdentities.get(cookieStoreId);
         expect(container.name).to.equal('A Container');
       });
@@ -346,21 +340,15 @@ describe('integration tests', () => {
           icon: 'fingerprint',
         })
       );
-      const otherTabs = [];
-      otherTabs.push(
-        await browser.tabs.create({
-          cookieStoreId: otherContainers[0].cookieStoreId,
-        })
+      const otherTabs = await Promise.all(
+        otherContainers.map(({ cookieStoreId }) =>
+          browser.tabs.create({ cookieStoreId })
+        )
       );
       const temporaryTab = await browser.tabs.create({
         cookieStoreId: temporaryCsIds[1],
       });
       temporaryTabIds.push(temporaryTab.id);
-      otherTabs.push(
-        await browser.tabs.create({
-          cookieStoreId: otherContainers[1].cookieStoreId,
-        })
-      );
 
       // Run rebuildDatabase()
       await app.rebuildDatabase();
@@ -389,7 +377,7 @@ describe('integration tests', () => {
 
     it('should remove empty temporary containers', async () => {
       const csids = await Promise.all(
-        [0, 1, 2, 3].map(async () => {
+        Array.from({ length: 4 }).map(async () => {
           const { cookieStoreId } = await app.createContainer();
           return cookieStoreId;
         })
@@ -398,9 +386,9 @@ describe('integration tests', () => {
       await browser.tabs.create({ cookieStoreId: csids[2] });
       await app.rebuildDatabase();
       expect(await browser.contextualIdentities.get(csids[0])).to.exist;
-      await invertP(browser.contextualIdentities.get(csids[1]));
+      await expectToReject(browser.contextualIdentities.get(csids[1]));
       expect(await browser.contextualIdentities.get(csids[2])).to.exist;
-      await invertP(browser.contextualIdentities.get(csids[3]));
+      await expectToReject(browser.contextualIdentities.get(csids[3]));
     });
 
     // TODO test these from outside the extension, possibly using "management"?
