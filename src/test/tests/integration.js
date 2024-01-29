@@ -24,7 +24,8 @@ async function expectToReject(promise) {
 // Unregisters when the AsyncIterable is terminated (e.g. by exiting
 // a `for await...of` loop or calling `.return()`)
 function events({ addListener, removeListener }) {
-  let promise, resolve;
+  let promise;
+  let resolve;
   let buffer = [];
   function listener(event) {
     if (promise) {
@@ -34,6 +35,7 @@ function events({ addListener, removeListener }) {
       buffer.push(events);
     }
   }
+
   addListener(listener);
   async function* eventIterator() {
     try {
@@ -43,13 +45,14 @@ function events({ addListener, removeListener }) {
         /* eslint-disable-next-line no-use-extend-native/no-use-extend-native --
          * Promise.withResolvers() exists in the browser but not in Node.js
          */
-        ({promise, resolve} = Promise.withResolvers());
+        ({ promise, resolve } = Promise.withResolvers());
         yield promise;
       }
     } finally {
       removeListener(listener);
     }
   }
+
   return eventIterator();
 }
 
