@@ -18,8 +18,8 @@ const tabs = new Map();
 
 // Handles browser starting with the extension installed
 // TODO: verify this is called correctly
-function handleStartup() {
-  rebuildDatabase();
+async function handleStartup() {
+  await rebuildDatabase();
 }
 
 // Handles extension being installed, reinstalled, or updated
@@ -34,24 +34,39 @@ async function handleInstalled(details) {
 
 // Handles tabs being opened
 // If the tab belongs to a recorded container, then records the tab
-function handleTabCreated(tab) {
-  const cookieStoreId = tab.cookieStoreId;
+async function handleTabCreated(tab) {
+  const { cookieStoreId } = tab;
   if (containers.has(cookieStoreId)) {
     addTabToDb(tab);
+  } else if (cookieStoreId !== 'firefox-default') {
+    const container = await browser.contextualIdentities.get(cookieStoreId);
+    if (isMarkedContainer(container)) {
+      addContainerToDb(cookieStoreId);
+      addTabToDb(tab);
+      await reifyMarkedContainer(container);
+    }
   }
 }
 
-async function handleContainerCreated({ contextualIdentity: container }) {
+function isMarkedContainer(container) {
+  return container.name === '%TEMP%';
+}
+
+async function reifyMarkedContainer(container) {
   const { cookieStoreId } = container;
-  if (container.name === '%TEMP%') {
-    const name = await genName(container);
-    const color = randomColor();
-    await browser.contextualIdentities.update(cookieStoreId, {
-      icon: 'circle',
-      name,
-      color,
-    });
-    addContainerToDb(cookieStoreId);
+  const name = await genName(container);
+  const color = randomColor();
+  return await browser.contextualIdentities.update(cookieStoreId, {
+    icon: 'circle',
+    name,
+    color,
+  });
+}
+
+async function handleContainerCreated({ contextualIdentity: container }) {
+  if (isMarkedContainer(container)) {
+    addContainerToDb(container.cookieStoreId);
+    await reifyMarkedContainer(container);
   }
 }
 
@@ -220,8 +235,11 @@ async function rebuildDatabase() {
   ]);
   await Promise.all(
     allContainers.map(async (container) => {
-      if (await isManagedContainer(container)) {
-        const cookieStoreId = container.cookieStoreId;
+      const { cookieStoreId } = container;
+      if (isMarkedContainer(container)) {
+        addContainerToDb(cookieStoreId);
+        await reifyMarkedContainer(container);
+      } else if (await isManagedContainer(container)) {
         addContainerToDb(cookieStoreId);
       }
     })

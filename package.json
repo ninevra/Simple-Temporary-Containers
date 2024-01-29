@@ -41,7 +41,8 @@
     "space": true,
     "rules": {
       "no-var": "off",
-      "import/no-absolute-path": "off"
+      "import/no-absolute-path": "off",
+      "no-return-await": "off"
     },
     "overrides": [
       {
