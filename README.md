@@ -1,9 +1,18 @@
 # Simple Temporary Containers
 
-Create temporary containers with one click.  Temporary containers are removed
-when their last tab is closed.
+Isolate websites in temporary containers.
 
-Create temporary containers in any of several ways:
+## What are containers?
+
+Each container has [separate cookies and site data](https://wiki.mozilla.org/Security/Contextual_Identity_Project/Containers#What_is_.28and_isn.27t.29_separated_between_Containers). That lets you be can be signed in to an account in one container and signed out in another, and makes it harder (though not impossible) to track you across containers.
+
+## What are temporary containers?
+
+This extension lets you create temporary containers, which have no cookies or site data to start with, and are automatically removed when their last tab is closed.
+
+## Using temporary containers
+
+You can create temporary containers in any of several ways:
 * By clicking the extension's icon in the navigation bar.
 * By right-clicking on a link and selecting "Open Link in New Temp Container Tab".
 * By right-clicking on a tab in the tab bar and selecting "Reopen in New Temp Container".
