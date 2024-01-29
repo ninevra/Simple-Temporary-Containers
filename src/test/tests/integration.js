@@ -292,7 +292,7 @@ describe('integration tests', () => {
   });
 
   describe('%TEMP% container', () => {
-    it('should become a new temporary container when a tab is opened', async () => {
+    it('should become a new temporary container when created', async () => {
       const updates = events(browser.contextualIdentities.onUpdated);
       const { cookieStoreId } = await browser.contextualIdentities.create({
         name: '%TEMP%',
@@ -306,8 +306,7 @@ describe('integration tests', () => {
         ({ contextualIdentity: updated }) =>
           updated.cookieStoreId === cookieStoreId
       );
-      expect(name).to.be.a('string');
-      expect(name).not.to.equal('%TEMP%');
+      expect(name).to.match(/^Temp /);
       expect(icon).to.equal('circle');
       const tab = await browser.tabs.create({ cookieStoreId });
       const removals = events(browser.contextualIdentities.onRemoved);
@@ -317,6 +316,46 @@ describe('integration tests', () => {
         ({ contextualIdentity: removed }) =>
           removed.cookieStoreId === cookieStoreId
       );
+    });
+
+    it('should become a new temporary container when a tab is opened', async () => {
+      const { cookieStoreId } = await browser.contextualIdentities.create({
+        name: 'A container',
+        color: 'blue',
+        icon: 'fence',
+      });
+      // Updating the container's name should not cause the extension to absorb it
+      await browser.contextualIdentities.update(cookieStoreId, {
+        name: '%TEMP%',
+      });
+      const updates = events(browser.contextualIdentities.onUpdated);
+      const tab = await browser.tabs.create({ cookieStoreId });
+      const { contextualIdentity: updated } = await until(
+        updates,
+        ({ contextualIdentity: updated }) =>
+          updated.cookieStoreId === cookieStoreId && updated.name !== '%TEMP%'
+      );
+      expect(updated.name).to.match(/^Temp /);
+      const removals = events(browser.contextualIdentities.onRemoved);
+      await browser.tabs.remove(tab.id);
+      await until(
+        removals,
+        ({ contextualIdentity: removed }) =>
+          removed.cookieStoreId === cookieStoreId
+      );
+    });
+
+    it('should become a new temporary container when database is rebuilt', async () => {
+      const { cookieStoreId } = await browser.contextualIdentities.create({
+        name: 'A container',
+        color: 'blue',
+        icon: 'fence',
+      });
+      await browser.contextualIdentities.update(cookieStoreId, {
+        name: '%TEMP%',
+      });
+      await app.rebuildDatabase();
+      await expectToReject(browser.contextualIdentities.get(cookieStoreId));
     });
   });
 
