@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { genName, isManagedContainer } from './container-util.js';
+import {
+  genName,
+  isManagedContainer,
+  isMarkedContainer,
+  makeContainerTemporary,
+} from './container-util.js';
 import { tabColor, tabColors, nextTab, rightmostTab } from './tab-util.js';
 import { randomColor, debug } from './util.js';
 
@@ -43,30 +48,15 @@ async function handleTabCreated(tab) {
     if (isMarkedContainer(container)) {
       addContainerToDb(cookieStoreId);
       addTabToDb(tab);
-      await reifyMarkedContainer(container);
+      await makeContainerTemporary(container);
     }
   }
-}
-
-function isMarkedContainer(container) {
-  return container.name === '%TEMP%';
-}
-
-async function reifyMarkedContainer(container) {
-  const { cookieStoreId } = container;
-  const name = await genName(container);
-  const color = randomColor();
-  return await browser.contextualIdentities.update(cookieStoreId, {
-    icon: 'circle',
-    name,
-    color,
-  });
 }
 
 async function handleContainerCreated({ contextualIdentity: container }) {
   if (isMarkedContainer(container)) {
     addContainerToDb(container.cookieStoreId);
-    await reifyMarkedContainer(container);
+    await makeContainerTemporary(container);
   }
 }
 
@@ -238,7 +228,7 @@ async function rebuildDatabase() {
       const { cookieStoreId } = container;
       if (isMarkedContainer(container)) {
         addContainerToDb(cookieStoreId);
-        await reifyMarkedContainer(container);
+        await makeContainerTemporary(container);
       } else if (await isManagedContainer(container)) {
         addContainerToDb(cookieStoreId);
       }

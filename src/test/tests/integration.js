@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+import { CONTAINER_MARK } from '../../container-util.js';
 import { expect } from '/test/lib/chai/chai.js';
 import sinon from '/test/lib/sinon/sinon-esm.js';
 
@@ -291,11 +292,11 @@ describe('integration tests', () => {
     });
   });
 
-  describe('%TEMP% container', () => {
+  describe(`${CONTAINER_MARK} container`, () => {
     it('should become a new temporary container when created', async () => {
       const updates = events(browser.contextualIdentities.onUpdated);
       const { cookieStoreId } = await browser.contextualIdentities.create({
-        name: '%TEMP%',
+        name: CONTAINER_MARK,
         color: 'blue',
         icon: 'fence',
       });
@@ -326,14 +327,15 @@ describe('integration tests', () => {
       });
       // Updating the container's name should not cause the extension to absorb it
       await browser.contextualIdentities.update(cookieStoreId, {
-        name: '%TEMP%',
+        name: CONTAINER_MARK,
       });
       const updates = events(browser.contextualIdentities.onUpdated);
       const tab = await browser.tabs.create({ cookieStoreId });
       const { contextualIdentity: updated } = await until(
         updates,
         ({ contextualIdentity: updated }) =>
-          updated.cookieStoreId === cookieStoreId && updated.name !== '%TEMP%'
+          updated.cookieStoreId === cookieStoreId &&
+          updated.name !== CONTAINER_MARK
       );
       expect(updated.name).to.match(/^Temp /);
       const removals = events(browser.contextualIdentities.onRemoved);
@@ -352,7 +354,7 @@ describe('integration tests', () => {
         icon: 'fence',
       });
       await browser.contextualIdentities.update(cookieStoreId, {
-        name: '%TEMP%',
+        name: CONTAINER_MARK,
       });
       await app.rebuildDatabase();
       await expectToReject(browser.contextualIdentities.get(cookieStoreId));

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { toHexString, hashConcat, sha1 } from './util.js';
+import { toHexString, hashConcat, randomColor, sha1 } from './util.js';
 
 // Generates a name for the given container
 // Name incorporates a random byte and a hash of that byte and the container's
@@ -51,4 +51,24 @@ export async function isManagedContainer(container) {
   }
 
   return false;
+}
+
+export const CONTAINER_MARK = '%TEMP%';
+
+// Determines whether a container is marked for intake and should be turned
+// into a temporary container.
+export function isMarkedContainer(container) {
+  return container.name === CONTAINER_MARK;
+}
+
+// Turns the given container into a temporary container
+export async function makeContainerTemporary(container) {
+  const { cookieStoreId } = container;
+  const name = await genName(container);
+  const color = randomColor();
+  return await browser.contextualIdentities.update(cookieStoreId, {
+    icon: 'circle',
+    name,
+    color,
+  });
 }
