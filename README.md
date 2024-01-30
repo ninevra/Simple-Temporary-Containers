@@ -1,6 +1,6 @@
 # Simple Temporary Containers
 
-Isolate websites in temporary containers. Uses just the minimum permissions and stores no data.
+Isolate websites in temporary containers. Uses only the minimum permissions and stores no data.
 
 ## What are containers?
 
@@ -26,9 +26,9 @@ To make a temporary container permanent, change its name (for example by visitin
 Uses **no** major permissions (permissions that [show warnings](https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#advised-permissions) to users and are listed on [addons.mozilla.org](https://addons.mozilla.org)).
 
 Uses only the minimum minor permissions:
-* `"contextualIdentities"`: Allows the extension to create and remove containers.
-* `"cookies"`: Allows the extension to create tabs in containers and to see what container each tab is in.
-* `"menus"`: Allows the extension to add items to context (right-click) menus.
+* `"contextualIdentities"`: Allows creating and removing containers.
+* `"cookies"`: Allows creating tabs in containers and to seeing which container each tab is in.
+* `"menus"`: Allows adding items to context (right-click) menus.
 These minor permissions are granted automatically by the browser and require no user input.
 
 No user data is stored or sent anywhere.
@@ -53,11 +53,11 @@ Provides a means of opening links from the command line or from other applicatio
 firefox "ext+container:name=%NEW_TEMP_CONTAINER%&url=https://mozilla.org/"
 ```
 
-Thanks to [Maxim Baz](https://github.com/maximbaz) for this feature!
+Thanks to [Maxim Baz](https://github.com/maximbaz) for contributing this feature!
 
 ## Prior art
 
-[Temporary Containers](https://addons.mozilla.org/en-US/firefox/addon/temporary-containers/) by [stoically](https://addons.mozilla.org/en-US/firefox/user/13470938/) is another wonderful extension serving the same purpose. [Temporary Containers](https://addons.mozilla.org/en-US/firefox/addon/temporary-containers/) offers much more functionality at the cost of more complexity and many more permissions. My goal with Simple Temporary Containers is to provide the basic functionality with as few permissions as possible and, hopefully, easily-auditable code.
+[Temporary Containers](https://addons.mozilla.org/en-US/firefox/addon/temporary-containers/) by [stoically](https://addons.mozilla.org/en-US/firefox/user/13470938/) is another wonderful extension serving the same purpose. [Temporary Containers](https://addons.mozilla.org/en-US/firefox/addon/temporary-containers/) offers many more features at the cost of more complexity and many more permissions. My goal with Simple Temporary Containers is to provide the basic functionality with as few permissions as possible and, hopefully, easily-auditable code.
 
 ## Auditing the code
 
