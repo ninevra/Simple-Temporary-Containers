@@ -59,6 +59,10 @@ Thanks to [Maxim Baz](https://github.com/maximbaz) for this feature!
 
 [Temporary Containers](https://addons.mozilla.org/en-US/firefox/addon/temporary-containers/) by [stoically](https://addons.mozilla.org/en-US/firefox/user/13470938/) is another wonderful extension serving the same purpose. [Temporary Containers](https://addons.mozilla.org/en-US/firefox/addon/temporary-containers/) offers much more functionality at the cost of more complexity and many more permissions. My goal with Simple Temporary Containers is to provide the basic functionality with as few permissions as possible and, hopefully, easily-auditable code.
 
+## Auditing the code
+
+If you're curious or really want to see what you're installing, you can read the source code in the [git repository](https://github.com/ninevra/Simple-Temporary-Containers/) or by right-clicking the "Add to Firefox" button and selecting "Save link as" to download the extension without installing it. Extensions are packaged in zip archives with filenames ending in `.xpi`.
+
 ## Roadmap
 
 - [ ] Make this compatible with Containers Sync.
