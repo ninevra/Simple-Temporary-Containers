@@ -8,6 +8,9 @@
     "96": "icons/icon-dark.svg"
   },
 
+  "author": "ninevra",
+  "homepage_url": "https://github.com/ninevra/Simple-Temporary-Containers",
+
   "permissions": [
     "contextualIdentities",
     "cookies",
