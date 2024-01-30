@@ -35,6 +35,7 @@
   "browser_action": {
     "default_icon": "icons/icon-default.svg",
     "default_title": "Open a new temporary container tab",
+    "default_area": "tabstrip",
     "theme_icons": [{
         "dark": "icons/icon-dark.svg",
         "light": "icons/icon-light.svg",
