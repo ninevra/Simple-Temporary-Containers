@@ -1,31 +1,29 @@
 # Simple Temporary Containers
 
-Isolate websites in temporary containers.
+Isolate websites in temporary containers. Uses just the minimum permissions and stores no data.
 
 ## What are containers?
 
-Each container has [separate cookies and site data](https://wiki.mozilla.org/Security/Contextual_Identity_Project/Containers#What_is_.28and_isn.27t.29_separated_between_Containers). That lets you be can be signed in to an account in one container and signed out in another, and makes it harder (though not impossible) to track you across containers.
+Containers group tabs into isolated contexts, each with its own separate [cookies and website data](https://wiki.mozilla.org/Security/Contextual_Identity_Project/Containers#What_is_.28and_isn.27t.29_separated_between_Containers). Tabs in one container can't see cookies from any other container. That lets you sign in to an account in one container and use a different account or stay signed out in another, and makes it harder (though not impossible) to track you across containers.
 
 ## What are temporary containers?
 
-This extension lets you create temporary containers, which have no cookies or site data to start with, and are automatically removed when their last tab is closed.
+This extension makes it easy to create temporary containers, which start out blank with no cookies or saved website data, and are automatically removed when you close all their tabs.
 
 ## Using temporary containers
 
-You can create temporary containers in any of several ways:
+You can create temporary containers in several ways:
 * By clicking the extension's icon in the navigation bar.
 * By right-clicking on a link and selecting "Open Link in New Temp Container Tab".
 * By right-clicking on a tab in the tab bar and selecting "Reopen in New Temp Container".
-* By pressing Ctrl+Alt+C. (Keybindings can be customized in about:addons -> settings dropdown -> Manage Extension Shortcuts.)
-* By creating a container called `%NEW_TEMP_CONTAINER%`.
-
-  (This is mostly useful for integrating with other extensions that create containers.)
+* By pressing `Ctrl+Alt+C`. (Keybindings can be customized in `about:addons` -> settings dropdown -> Manage Extension Shortcuts.)
+* By creating a container called `%NEW_TEMP_CONTAINER%`. (This is mostly useful for [integrating with other extensions](#using-simple-temorary-containers-with-other-extensions) that create containers.)
 
 To make a temporary container permanent, change its name (for example by visiting `about:preferences#containers` or using Firefox Multi-Account Containers).
 
 ## Privacy
 
-Uses **no** major permissions (permissions that [show warnings](https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#advised-permissions) to users and on [addons.mozilla.org](https://addons.mozilla.org)).
+Uses **no** major permissions (permissions that [show warnings](https://extensionworkshop.com/documentation/develop/request-the-right-permissions/#advised-permissions) to users and are listed on [addons.mozilla.org](https://addons.mozilla.org)).
 
 Uses only the minimum minor permissions:
 * `"contextualIdentities"`: Allows the extension to create and remove containers.
@@ -41,7 +39,7 @@ No user data is stored or sent anywhere.
 
 Provides a convenient interface for listing, creating, and modifying containers. It's helpful for renaming temporary containers to make them persistent.
 
-However, Simple Temporary Containers is not currently compatible with its "Container Sync" feature, so, it's best to leave that feature turned off for now.
+However, Simple Temporary Containers is not currently compatible with its "Container Sync" feature, so be sure to leave that feature disabled.
 
 ### [New container tab](https://addons.mozilla.org/en-US/firefox/addon/new-container-tab/) by [Jonathan Kingston](https://addons.mozilla.org/en-US/firefox/user/12818933/)
 
