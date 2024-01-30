@@ -94,13 +94,41 @@ async function handleMenuItem(info, tab) {
   }
 }
 
+const cleaner = {
+  // This looks like state, but it's not preserved past a cleanup run.
+  // It's for preventing us from invoking many redundant copies of
+  // removeEmptyTemporaryContainers() when tabs are removed en masse.
+  // Should only be necessary while actively running cleanup, so hopefully it
+  // will be fine for non-persistent background page.
+  queueDepth: 0, // Either idle, running, or enqueued; never multiple enqueued
+  // Recently removed tabs may erroneously show up in queries; record them
+  recentlyRemovedTabs: new Set(),
+  async clean(tabId) {
+    this.recentlyRemovedTabs.add(tabId);
+    // Never enqueue more than 2 tasks (1 running and 1 waiting)
+    this.queueDepth = Math.min(this.queueDepth + 1, 2);
+    if (this.queueDepth === 1) {
+      // Was idle, now running, so, start the task
+      while (this.queueDepth > 0) {
+        /* eslint-disable-next-line no-await-in-loop --
+         * running these sequentially is the whole point.
+         */
+        await removeEmptyTemporaryContainers(this.recentlyRemovedTabs);
+        this.queueDepth -= 1;
+      }
+
+      this.recentlyRemovedTabs.clear();
+    }
+  },
+};
+
 // Setup & Register Event Handlers:
 
-browser.tabs.onRemoved.addListener(removeEmptyTemporaryContainers);
+browser.tabs.onRemoved.addListener((tabId) => cleaner.clean(tabId));
 browser.tabs.onCreated.addListener(handleTabCreated);
 browser.browserAction.onClicked.addListener(handleBrowserAction);
 browser.contextualIdentities.onCreated.addListener(handleContainerCreated);
-browser.runtime.onStartup.addListener(removeEmptyTemporaryContainers);
+browser.runtime.onStartup.addListener(() => cleaner.clean());
 browser.runtime.onInstalled.addListener(handleInstalled);
 
 browser.menus.create(
@@ -158,7 +186,9 @@ async function createContainer(denyList = []) {
 }
 
 // Iterates through all containers and tabs to rebuild extension state
-async function removeEmptyTemporaryContainers(removedTabId) {
+async function removeEmptyTemporaryContainers(
+  recentlyRemovedTabIds = new Set()
+) {
   console.time('removeEmptyTempContainers');
   // Retrieve containers before tabs
   // Therefore containers added after tabs are queried are preserved
@@ -175,7 +205,7 @@ async function removeEmptyTemporaryContainers(removedTabId) {
   // Query tabs
   // This may be inconsistent; recently removed tabs sometimes persist
   const allTabs = await browser.tabs.query({});
-  const realTabs = allTabs.filter(({ id }) => id !== removedTabId);
+  const realTabs = allTabs.filter(({ id }) => !recentlyRemovedTabIds.has(id));
   // Synchronously find the empty containers
   const nonEmptyContainers = new Set(realTabs.map((tab) => tab.cookieStoreId));
   const emptyContainers = managedContainers.filter(
@@ -185,7 +215,12 @@ async function removeEmptyTemporaryContainers(removedTabId) {
     emptyContainers.map(async (container) => {
       // TODO hopefully we've been sync since browser.tabs.query()? but it's
       // likely possible for there to be new tabs not reflected in the query().
-      await browser.contextualIdentities.remove(container.cookieStoreId);
+      try {
+        await browser.contextualIdentities.remove(container.cookieStoreId);
+      } catch (error) {
+        // TODO why and when does this happen
+        console.error('threw while removing', container, error);
+      }
     })
   );
   console.timeEnd('removeEmptyTempContainers');
@@ -198,4 +233,5 @@ window.stateForTests = {
   handleMenuItem,
   createContainer,
   handleInstalled,
+  cleaner,
 };

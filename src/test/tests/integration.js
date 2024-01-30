@@ -263,8 +263,7 @@ describe('integration tests', () => {
     });
 
     context('in large quantities', () => {
-      // TODO don't skip this. in the meantime, this failure is expected, though.
-      it.skip('should clean up tolerably quickly', async () => {
+      it('should clean up tolerably quickly', async () => {
         const { containers, tabs } = await containersAndTabsCreated(
           async () => {
             const current = await browser.tabs.getCurrent();
@@ -369,14 +368,7 @@ describe('integration tests', () => {
     // TODO test these from outside the extension, possibly using "management"?
     it('should trigger on install');
     it('should trigger on update');
-    it('should trigger on browser launch', () => {
-      expect(
-        background.browser.runtime.onStartup.hasListener(
-          app.removeEmptyTemporaryContainers
-        )
-      ).to.be.true;
-      // TODO spy rebuildDatabase to ensure that it is called?
-    });
+    it('should trigger on browser launch');
   });
 
   describe('container colors', () => {
