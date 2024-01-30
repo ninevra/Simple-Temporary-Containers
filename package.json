@@ -1,6 +1,6 @@
 {
   "name": "simple-temporary-containers",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Firefox addon. Create temporary containers with one click.  Temporary containers are removed.",
   "private": true,
   "scripts": {
