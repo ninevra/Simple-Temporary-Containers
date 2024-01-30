@@ -1,6 +1,6 @@
 # Simple Temporary Containers
 
-Isolate websites in temporary containers. Uses only the minimum permissions and stores no data.
+Isolate tabs in temporary containers. Uses only the minimum permissions and stores no data.
 
 ## What are containers?
 
