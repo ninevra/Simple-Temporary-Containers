@@ -29,11 +29,11 @@ function events({ addListener, removeListener }) {
   let resolve;
   let buffer = [];
   function listener(event) {
-    if (promise) {
+    if (promise === undefined) {
+      buffer.push(event);
+    } else {
       resolve(event);
       promise = undefined;
-    } else {
-      buffer.push(event);
     }
   }
 
