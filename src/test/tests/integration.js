@@ -33,7 +33,7 @@ function events({ addListener, removeListener }) {
       resolve(event);
       promise = undefined;
     } else {
-      buffer.push(events);
+      buffer.push(event);
     }
   }
 
