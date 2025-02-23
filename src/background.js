@@ -94,41 +94,43 @@ async function handleMenuItem(info, tab) {
   }
 }
 
-const cleaner = {
-  // This looks like state, but it's not preserved past a cleanup run.
-  // It's for preventing us from invoking many redundant copies of
-  // removeEmptyTemporaryContainers() when tabs are removed en masse.
-  // Should only be necessary while actively running cleanup, so hopefully it
-  // will be fine for non-persistent background page.
-  queueDepth: 0, // Either idle, running, or enqueued; never multiple enqueued
-  // Recently removed tabs may erroneously show up in queries; record them
-  recentlyRemovedTabs: new Set(),
-  async clean(tabId) {
-    this.recentlyRemovedTabs.add(tabId);
-    // Never enqueue more than 2 tasks (1 running and 1 waiting)
-    this.queueDepth = Math.min(this.queueDepth + 1, 2);
-    if (this.queueDepth === 1) {
-      // Was idle, now running, so, start the task
-      while (this.queueDepth > 0) {
-        /* eslint-disable-next-line no-await-in-loop --
-         * running these sequentially is the whole point.
-         */
-        await removeEmptyTemporaryContainers(this.recentlyRemovedTabs);
-        this.queueDepth -= 1;
-      }
+// The number of queued (including running) cleanup tasks
+let taskCount = 0;
+// The max queue length
+const MAX_TASKS = 2;
+// The last cleanup task in the queue
+let tail = Promise.resolve();
 
-      this.recentlyRemovedTabs.clear();
-    }
-  },
-};
+const recentlyRemovedTabIds = new Set();
+
+// Run removeEmptyTemporaryContainers, or enqueue a copy of it to run after the
+// current one finishes; but never enqueue more than one at a time. This
+// accounts for the possibility that tabs are removed during cleanup, requiring
+// an additional cleanup run, without running a potentially unbounded number of
+// cleanups simultaneously.
+async function clean(recentlyRemovedTabId) {
+  recentlyRemovedTabIds.add(recentlyRemovedTabId);
+
+  if (taskCount < MAX_TASKS) {
+    taskCount++;
+    tail = (async () => {
+      await tail;
+      await removeEmptyTemporaryContainers(recentlyRemovedTabIds);
+      taskCount--;
+    })();
+  }
+
+  await tail;
+  if (taskCount === 0) recentlyRemovedTabIds.clear();
+}
 
 // Setup & Register Event Handlers:
 
-browser.tabs.onRemoved.addListener((tabId) => cleaner.clean(tabId));
+browser.tabs.onRemoved.addListener(clean);
 browser.tabs.onCreated.addListener(handleTabCreated);
 browser.browserAction.onClicked.addListener(handleBrowserAction);
 browser.contextualIdentities.onCreated.addListener(handleContainerCreated);
-browser.runtime.onStartup.addListener(() => cleaner.clean());
+browser.runtime.onStartup.addListener(clean);
 browser.runtime.onInstalled.addListener(handleInstalled);
 
 browser.menus.create(
@@ -233,5 +235,4 @@ window.stateForTests = {
   handleMenuItem,
   createContainer,
   handleInstalled,
-  cleaner,
 };
