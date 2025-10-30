@@ -120,7 +120,6 @@ browser.tabs.onRemoved.addListener(async (id) => {
 browser.tabs.onCreated.addListener(handleTabCreated);
 browser.browserAction.onClicked.addListener(handleBrowserAction);
 browser.contextualIdentities.onCreated.addListener(handleContainerCreated);
-browser.runtime.onStartup.addListener(clean);
 browser.runtime.onInstalled.addListener(handleInstalled);
 
 browser.menus.create(

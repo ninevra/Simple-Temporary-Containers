@@ -383,11 +383,6 @@ describe('integration tests', () => {
       expect(await browser.contextualIdentities.get(csids[2])).to.exist;
       await expectToReject(browser.contextualIdentities.get(csids[3]));
     });
-
-    // TODO test these from outside the extension, possibly using "management"?
-    it('should trigger on install');
-    it('should trigger on update');
-    it('should trigger on browser launch');
   });
 
   describe('container colors', () => {
