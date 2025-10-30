@@ -244,6 +244,25 @@ describe('integration tests', () => {
             removed.cookieStoreId === cookieStoreId
         );
       });
+
+      it('should be removed after about 10s', async () => {
+        const [{ cookieStoreId }] = await containersCreated(async () =>
+          app.handleBrowserAction(await browser.tabs.getCurrent())
+        );
+        const [tab] = await browser.tabs.query({ cookieStoreId });
+        const removals = events(browser.contextualIdentities.onRemoved);
+        await browser.tabs.remove(tab.id);
+        const startTime = Date.now();
+        await until(
+          removals,
+          ({ contextualIdentity: removed }) =>
+            removed.cookieStoreId === cookieStoreId
+        );
+        const endTime = Date.now();
+        const delay = endTime - startTime;
+        expect(delay).to.be.above(9000);
+        expect(delay).to.be.below(11_000);
+      });
     });
 
     context('when renamed', () => {
