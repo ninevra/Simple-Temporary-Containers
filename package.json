@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/ninevra/Simple-Temporary-Containers#readme",
   "devDependencies": {
-    "web-ext": "^7.10.0",
+    "web-ext": "^9.1.0",
     "xo": "^0.56.0"
   },
   "webExt": {
