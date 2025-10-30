@@ -94,32 +94,21 @@ async function handleMenuItem(info, tab) {
   }
 }
 
-// The number of queued (including running) cleanup tasks
-let taskCount = 0;
-// The max queue length
-const MAX_TASKS = 2;
-// The last cleanup task in the queue
-let tail = Promise.resolve();
-
 const recentlyRemovedTabIds = new Set();
 
-// Run removeEmptyTemporaryContainers, or enqueue a copy of it to run after the
-// current one finishes; but never enqueue more than one at a time. This
-// accounts for the possibility that tabs are removed during cleanup, requiring
-// an additional cleanup run, without running a potentially unbounded number of
-// cleanups simultaneously.
-async function clean() {
-  if (taskCount < MAX_TASKS) {
-    taskCount++;
-    tail = (async () => {
-      await tail;
-      await removeEmptyTemporaryContainers(recentlyRemovedTabIds);
-      taskCount--;
-    })();
-  }
+// Delay in milliseconds between tab deletion and container deletion
+const CLEANUP_DELAY_MS = 10_000;
+// The id of the timer for the scheduled cleanup operation
+let debounceTimer;
 
-  await tail;
-  if (taskCount === 0) recentlyRemovedTabIds.clear();
+async function clean() {
+  // Clear any old timer
+  window.clearTimeout(debounceTimer);
+  // Start a new timer
+  debounceTimer = window.setTimeout(async () => {
+    await removeEmptyTemporaryContainers(recentlyRemovedTabIds);
+    recentlyRemovedTabIds.clear();
+  }, CLEANUP_DELAY_MS);
 }
 
 // Setup & Register Event Handlers:
