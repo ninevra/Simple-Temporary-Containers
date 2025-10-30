@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Simple Temporary Containers",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Create and destroy temporary containers.",
   "icons": {
     "48": "icons/icon-dark.svg",
