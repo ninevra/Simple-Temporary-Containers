@@ -108,9 +108,7 @@ const recentlyRemovedTabIds = new Set();
 // accounts for the possibility that tabs are removed during cleanup, requiring
 // an additional cleanup run, without running a potentially unbounded number of
 // cleanups simultaneously.
-async function clean(recentlyRemovedTabId) {
-  recentlyRemovedTabIds.add(recentlyRemovedTabId);
-
+async function clean() {
   if (taskCount < MAX_TASKS) {
     taskCount++;
     tail = (async () => {
@@ -126,7 +124,10 @@ async function clean(recentlyRemovedTabId) {
 
 // Setup & Register Event Handlers:
 
-browser.tabs.onRemoved.addListener(clean);
+browser.tabs.onRemoved.addListener(async (id) => {
+  recentlyRemovedTabIds.add(id);
+  await clean();
+});
 browser.tabs.onCreated.addListener(handleTabCreated);
 browser.browserAction.onClicked.addListener(handleBrowserAction);
 browser.contextualIdentities.onCreated.addListener(handleContainerCreated);
